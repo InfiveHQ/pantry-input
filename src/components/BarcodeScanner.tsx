@@ -162,7 +162,7 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
       mounted = false;
       stopCamera();
     };
-  }, [selectedCamera]);
+  }, [selectedCamera, onScan, scanAttempts]);
 
 
 
