@@ -74,6 +74,7 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
         
         const result = await codeReader.current.decodeFromVideoElement(videoRef.current);
         if (result && result.getText()) {
+          console.log('Barcode found:', result.getText());
           setSuccess(true);
           setScanning(false);
           stopCamera();
@@ -95,7 +96,8 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
       
       // Continue scanning if not stopped
       if (!stopped) {
-        setTimeout(() => scanLoop(), 100); // Small delay to prevent overwhelming
+        // Use setTimeout with a small delay to prevent overwhelming
+        setTimeout(() => scanLoop(), 100);
       }
     };
 

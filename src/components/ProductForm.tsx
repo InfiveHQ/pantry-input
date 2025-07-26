@@ -119,14 +119,63 @@ export default function ProductForm({ barcode, onBarcodeScanned }: {
   };
 
   const startCamera = async () => {
+    console.log('Starting camera...');
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      console.log('Requesting camera access...');
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        } 
+      });
+      console.log('Camera stream obtained:', stream);
+      
+      // Set showCamera to true first so the video element is rendered
+      setShowCamera(true);
+      
+      // Wait a bit for the DOM to update and the video element to be created
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       if (videoRef.current) {
+        console.log('Setting video source...');
         videoRef.current.srcObject = stream;
-        setShowCamera(true);
+        
+        // Wait for video to be ready before playing
+        await new Promise((resolve, reject) => {
+          if (videoRef.current) {
+            videoRef.current.onloadedmetadata = () => {
+              console.log('Video metadata loaded');
+              resolve(true);
+            };
+            videoRef.current.onerror = (error) => {
+              console.error('Video error:', error);
+              reject(error);
+            };
+            // Set a timeout in case the video doesn't load
+            setTimeout(() => reject(new Error('Video load timeout')), 5000);
+          } else {
+            reject(new Error('Video ref is null'));
+          }
+        });
+        
+        console.log('Attempting to play video...');
+        await videoRef.current.play();
+        console.log('Video should be playing now');
+        console.log('Camera modal should be visible now, showCamera:', true);
+      } else {
+        console.error('videoRef.current is null');
+        setShowCamera(false); // Hide modal if video element doesn't exist
       }
-    } catch (error) {
-      alert("Camera access denied or not available.");
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+      console.error('Camera error:', error);
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+      setShowCamera(false); // Hide modal on error
+      alert(`Camera access denied or not available: ${error.message}`);
     }
   };
 
