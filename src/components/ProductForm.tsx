@@ -11,8 +11,9 @@ const LOCATION_OPTIONS = [
   "Unknown"
 ];
 
-export default function ProductForm({ barcode }: {
+export default function ProductForm({ barcode, productData }: {
   barcode?: string;
+  productData?: any;
 }) {
   const [formData, setFormData] = useState({
     name: "",
@@ -29,19 +30,33 @@ export default function ProductForm({ barcode }: {
     image: ""
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingProduct, setIsLoadingProduct] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [showCamera, setShowCamera] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Auto-fetch product details when barcode is provided
+  // Auto-populate form when productData is provided
   useEffect(() => {
-    if (barcode && barcode !== formData.barcode) {
+    console.log('[PRODUCTFORM] Product data received:', productData);
+    if (productData && barcode) {
+      console.log('[PRODUCTFORM] Populating form with product data');
+      setFormData(prev => ({
+        ...prev,
+        barcode: barcode,
+        name: productData.product_name || "",
+        brand: productData.brands || "",
+        category: productData.categories_tags?.[0]?.replace("en:", "") || "",
+        image: productData.image_url || ""
+      }));
+      console.log('[PRODUCTFORM] Form populated with product details');
+    } else if (barcode && !productData) {
+      // If we have a barcode but no product data, just set the barcode
+      console.log('[PRODUCTFORM] Setting barcode only');
       setFormData(prev => ({ ...prev, barcode }));
-      fetchProductDetails(barcode);
     }
-  }, [barcode, formData.barcode]);
+  }, [barcode, productData]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -97,12 +112,15 @@ export default function ProductForm({ barcode }: {
   };
 
   const fetchProductDetails = async (barcode: string) => {
+    console.log('[PRODUCTFORM] Fetching product details for barcode:', barcode);
+    setIsLoadingProduct(true);
     try {
       const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
       const data = await response.json();
       
       if (data.status === 1 && data.product) {
         const product = data.product;
+        console.log('[PRODUCTFORM] Product found:', product.product_name);
         setFormData(prev => ({
           ...prev,
           name: product.product_name || "",
@@ -110,11 +128,15 @@ export default function ProductForm({ barcode }: {
           category: product.categories_tags?.[0]?.replace("en:", "") || "",
           image: product.image_url || ""
         }));
+        console.log('[PRODUCTFORM] Form data updated with product details');
       } else {
+        console.log('[PRODUCTFORM] Product not found in database');
         alert("Product not found in database for this barcode.");
       }
     } catch (error) {
       console.error("Error fetching product details:", error);
+    } finally {
+      setIsLoadingProduct(false);
     }
   };
 
@@ -492,44 +514,57 @@ export default function ProductForm({ barcode }: {
           </div>
         )}
 
-        {/* Barcode Section */}
-        <div style={{ 
-          border: '1px solid #ddd', 
-          padding: 15, 
-          borderRadius: 8,
-          marginBottom: 20
-        }}>
-          <h3 style={{ marginBottom: 15 }}>Barcode</h3>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 10 }}>
-            <input
-              type="text"
-              name="barcode"
-              value={formData.barcode}
-              onChange={handleInputChange}
-              placeholder="Enter barcode manually"
-              style={{
-                flex: 1,
-                padding: '10px',
-                border: '1px solid #ddd',
-                borderRadius: 4,
-                fontSize: 16
-              }}
-            />
-            <button
-              type="button"
-              onClick={handleManualBarcodeLookup}
-              style={{
-                padding: '10px 20px',
-                background: '#17a2b8',
-                color: 'white',
-                border: 'none',
-                borderRadius: 4,
-                cursor: 'pointer'
-              }}
-            >
-              Lookup Product
-            </button>
-          </div>
+                 {/* Barcode Section */}
+         <div style={{ 
+           border: '1px solid #ddd', 
+           padding: 15, 
+           borderRadius: 8,
+           marginBottom: 20
+         }}>
+           <h3 style={{ marginBottom: 15 }}>Barcode</h3>
+           <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 10 }}>
+             <input
+               type="text"
+               name="barcode"
+               value={formData.barcode}
+               onChange={handleInputChange}
+               placeholder="Enter barcode manually"
+               style={{
+                 flex: 1,
+                 padding: '10px',
+                 border: '1px solid #ddd',
+                 borderRadius: 4,
+                 fontSize: 16
+               }}
+             />
+             <button
+               type="button"
+               onClick={handleManualBarcodeLookup}
+               disabled={isLoadingProduct}
+               style={{
+                 padding: '10px 20px',
+                 background: isLoadingProduct ? '#6c757d' : '#17a2b8',
+                 color: 'white',
+                 border: 'none',
+                 borderRadius: 4,
+                 cursor: isLoadingProduct ? 'not-allowed' : 'pointer'
+               }}
+             >
+               {isLoadingProduct ? 'Loading...' : 'Lookup Product'}
+             </button>
+           </div>
+           {isLoadingProduct && (
+             <div style={{ 
+               background: '#e3f2fd', 
+               color: '#1976d2', 
+               padding: 10, 
+               borderRadius: 4, 
+               marginBottom: 10,
+               textAlign: 'center'
+             }}>
+               🔍 Looking up product details...
+             </div>
+           )}
           <div style={{ fontSize: 14, color: '#666', marginBottom: 10 }}>
             Or upload a barcode image:
           </div>

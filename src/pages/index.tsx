@@ -5,8 +5,10 @@ import BarcodeScanner from "../components/BarcodeScanner";
 export default function Home() {
   const [showScanner, setShowScanner] = useState(false);
   const [scannedBarcode, setScannedBarcode] = useState<string>("");
+  const [productData, setProductData] = useState<any>(null);
 
   const handleBarcodeScanned = (barcode: string) => {
+    console.log('[MAIN] Barcode scanned:', barcode);
     setScannedBarcode(barcode);
     setShowScanner(false);
   };
@@ -16,18 +18,23 @@ export default function Home() {
   };
 
   const fetchProduct = async (barcode: string) => {
+    console.log('[MAIN] Fetching product for barcode:', barcode);
     try {
       const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
       const data = await response.json();
       
       if (data.status === 1 && data.product) {
-        // Set the barcode and show the form
+        console.log('[MAIN] Product found:', data.product.product_name);
+        // Set the barcode and product data
         setScannedBarcode(barcode);
+        setProductData(data.product);
         setShowScanner(false);
       } else {
+        console.log('[MAIN] Product not found in database');
         alert("Product not found in database for this barcode.");
         // Still set the barcode so user can manually enter product details
         setScannedBarcode(barcode);
+        setProductData(null);
         setShowScanner(false);
       }
     } catch (error) {
@@ -35,6 +42,7 @@ export default function Home() {
       alert("Failed to fetch product details.");
       // Still set the barcode so user can manually enter product details
       setScannedBarcode(barcode);
+      setProductData(null);
       setShowScanner(false);
     }
   };
@@ -72,6 +80,7 @@ export default function Home() {
             </div>
             <ProductForm 
               barcode={scannedBarcode}
+              productData={productData}
             />
           </div>
         )}
