@@ -15,6 +15,8 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
   const [success, setSuccess] = useState(false);
   const codeReader = useRef<BrowserMultiFormatReader | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
+  const [selectedCamera, setSelectedCamera] = useState<string | undefined>(undefined);
 
   // Responsive frame style for portrait/landscape
   useEffect(() => {
@@ -32,36 +34,59 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
     return () => window.removeEventListener('resize', updateFrameStyle);
   }, []);
 
+  // List cameras on mount
+  useEffect(() => {
+    async function getCameras() {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoInputs = devices.filter(d => d.kind === 'videoinput');
+        setCameras(videoInputs);
+        if (videoInputs.length > 0 && !selectedCamera) {
+          setSelectedCamera(videoInputs[0].deviceId);
+        }
+      } catch (e) {
+        setError('Could not list cameras');
+      }
+    }
+    getCameras();
+  }, []);
+
   useEffect(() => {
     codeReader.current = new BrowserMultiFormatReader();
     let stopped = false;
 
     const startCamera = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { 
-            facingMode: "environment",
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          }
-        });
+        console.log('[CAMERA] Starting camera...');
+        const constraints: MediaStreamConstraints = {
+          video: selectedCamera
+            ? { deviceId: { exact: selectedCamera }, width: { ideal: 1280 }, height: { ideal: 720 } }
+            : { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } }
+        };
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        console.log('[CAMERA] Stream obtained:', stream);
         streamRef.current = stream;
         if (videoRef.current) {
+          console.log('[CAMERA] Setting video source...');
           videoRef.current.srcObject = stream;
           videoRef.current.setAttribute('playsinline', 'true');
           await videoRef.current.play();
+          console.log('[CAMERA] Video playing:', videoRef.current.readyState);
           
           // Get video dimensions
           const track = stream.getVideoTracks()[0];
           const settings = track.getSettings();
+          console.log('[CAMERA] Video settings:', settings);
           setVideoDimensions(`${settings.width}x${settings.height}`);
         }
         setScanning(true);
         setScanAttempts(0);
         setLastError(null);
         setSuccess(false);
+        console.log('[CAMERA] Starting scan loop...');
         scanLoop();
       } catch (e) {
+        console.error('[CAMERA] Error starting camera:', e);
         setError("Camera access denied or not available.");
       }
     };
@@ -71,6 +96,8 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
       try {
         setScanAttempts(prev => prev + 1);
         console.log(`[ZXING] Scan attempt #${scanAttempts + 1}`);
+        console.log(`[ZXING] Video element ready:`, videoRef.current.readyState);
+        console.log(`[ZXING] Video dimensions:`, videoRef.current.videoWidth, 'x', videoRef.current.videoHeight);
         
         const result = await codeReader.current.decodeFromVideoElement(videoRef.current);
         if (result && result.getText()) {
@@ -87,10 +114,12 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
       } catch (e) {
         if (e instanceof NotFoundException) {
           setLastError("No barcode found in frame");
+          console.log(`[ZXING] No barcode found in attempt #${scanAttempts + 1}`);
         } else {
           const errorMsg = "Scanning error: " + (e && (e as any).message ? (e as any).message : String(e)); // eslint-disable-line @typescript-eslint/no-explicit-any
           setLastError(errorMsg);
           setError(errorMsg);
+          console.error(`[ZXING] Error in attempt #${scanAttempts + 1}:`, e);
         }
       }
       
@@ -117,11 +146,36 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
       stopCamera();
     };
     // eslint-disable-next-line
-  }, []);
+  }, [selectedCamera]);
 
   return (
     <div style={{ padding: 20, textAlign: 'center' }}>
       <h2>Barcode Scanner</h2>
+      {/* Camera selection dropdown */}
+      {cameras.length > 0 && (
+        <div style={{ marginBottom: 10 }}>
+          <label htmlFor="camera-select" style={{ marginRight: 8 }}>Camera:</label>
+          <select
+            id="camera-select"
+            value={selectedCamera}
+            onChange={e => setSelectedCamera(e.target.value)}
+            style={{ fontSize: 16, padding: 4 }}
+          >
+            {cameras.map(cam => (
+              <option key={cam.deviceId} value={cam.deviceId}>{cam.label || `Camera ${cam.deviceId}`}</option>
+            ))}
+          </select>
+          {/* Debug: List all detected cameras */}
+          <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
+            <div>Detected cameras:</div>
+            <ul style={{ margin: 0, paddingLeft: 16 }}>
+              {cameras.map(cam => (
+                <li key={cam.deviceId}>{cam.label || cam.deviceId}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
       <div style={{ marginBottom: 20, position: 'relative' }}>
         <video
           ref={videoRef}

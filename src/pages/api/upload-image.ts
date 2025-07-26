@@ -25,6 +25,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Generate unique filename
     const filename = `product-${Date.now()}-${Math.random().toString(36).substring(2)}.jpg`;
 
+    console.log('Attempting to upload file:', filename);
+
     // Upload to Supabase Storage
     const { data, error } = await supabase.storage
       .from('product-images')
@@ -35,9 +37,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
 
     if (error) {
-      console.error('Upload error:', error);
-      return res.status(500).json({ error: 'Failed to upload image' });
+      console.error('Upload error details:', error);
+      return res.status(500).json({ 
+        error: 'Failed to upload image',
+        details: error.message 
+      });
     }
+
+    console.log('Upload successful:', data);
 
     // Get public URL
     const { data: urlData } = supabase.storage
@@ -52,6 +59,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   } catch (error) {
     console.error('Upload handler error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 } 

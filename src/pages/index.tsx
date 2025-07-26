@@ -21,16 +21,21 @@ export default function Home() {
       const data = await response.json();
       
       if (data.status === 1 && data.product) {
-        const product = data.product;
-        // Product details will be handled by ProductForm
+        // Set the barcode and show the form
         setScannedBarcode(barcode);
         setShowScanner(false);
       } else {
         alert("Product not found in database for this barcode.");
+        // Still set the barcode so user can manually enter product details
+        setScannedBarcode(barcode);
+        setShowScanner(false);
       }
     } catch (error) {
       console.error("Error fetching product details:", error);
       alert("Failed to fetch product details.");
+      // Still set the barcode so user can manually enter product details
+      setScannedBarcode(barcode);
+      setShowScanner(false);
     }
   };
 

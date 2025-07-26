@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { BrowserMultiFormatReader } from "@zxing/library";
 
 const LOCATION_OPTIONS = [
@@ -36,6 +36,14 @@ export default function ProductForm({ barcode, onBarcodeScanned }: {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Auto-fetch product details when barcode is provided
+  useEffect(() => {
+    if (barcode && barcode !== formData.barcode) {
+      setFormData(prev => ({ ...prev, barcode }));
+      fetchProductDetails(barcode);
+    }
+  }, [barcode]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -215,11 +223,12 @@ export default function ProductForm({ barcode, onBarcodeScanned }: {
             console.log('Image uploaded successfully:', result.url);
           } else {
             console.error('Upload failed:', result.error);
-            alert('Failed to upload image. Please try again.');
+            const errorMessage = result.details ? `${result.error}: ${result.details}` : result.error;
+            alert(`Failed to upload image: ${errorMessage}`);
           }
         } catch (error) {
           console.error('Upload error:', error);
-          alert('Failed to upload image. Please try again.');
+          alert(`Failed to upload image: ${error instanceof Error ? error.message : 'Unknown error'}`);
         }
       }
     }
