@@ -7,39 +7,57 @@ export default function Home() {
   const [showScanner, setShowScanner] = useState(false);
 
   async function fetchProduct(code: string) {
-    const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`);
-    const data = await res.json();
-    if (data.status === 1) {
-      setProduct({
-        name: data.product.product_name || "",
-        brand: data.product.brands || "",
-        category: data.product.categories || "",
-        image: data.product.image_url || "",
-        barcode: code,
-      });
-    } else {
+    try {
+      const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${code}.json`);
+      const data = await res.json();
+      if (data.status === 1) {
+        setProduct({ 
+          name: data.product.product_name || "", 
+          brand: data.product.brands || "", 
+          category: data.product.categories || "", 
+          barcode: code,
+          image: data.product.image_url || ""
+        });
+      } else {
+        setProduct({ name: "", brand: "", category: "", barcode: code });
+      }
+      setShowScanner(false);
+    } catch (error) {
+      console.error('Error fetching product:', error);
       setProduct({ name: "", brand: "", category: "", barcode: code });
+      setShowScanner(false);
     }
-    setShowScanner(false);
+  }
+
+  if (showScanner) {
+    return (
+      <BarcodeScanner
+        onScan={(code) => {
+          fetchProduct(code);
+        }}
+        onManualEntry={() => setShowScanner(false)}
+      />
+    );
   }
 
   return (
-    <div style={{ padding: 20 }}>
-      {showScanner ? (
-        <>
-          <BarcodeScanner onScan={fetchProduct} />
-          <button onClick={() => setShowScanner(false)} style={{ marginTop: 10 }}>
-            Cancel
-          </button>
-        </>
-      ) : (
-        <>
-          <ProductForm product={product} />
-          <button onClick={() => setShowScanner(true)} style={{ marginTop: 10, padding: 8, background: '#007bff', color: 'white', border: 'none', borderRadius: 4 }}>
-            Scan Barcode
-          </button>
-        </>
-      )}
+    <div>
+      <button 
+        onClick={() => setShowScanner(true)}
+        style={{
+          padding: '12px 24px',
+          background: '#007bff',
+          color: 'white',
+          border: 'none',
+          borderRadius: 4,
+          cursor: 'pointer',
+          fontSize: 16,
+          margin: '20px'
+        }}
+      >
+        Scan Barcode
+      </button>
+      <ProductForm product={product} />
     </div>
   );
 }
