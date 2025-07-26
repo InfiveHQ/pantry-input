@@ -72,7 +72,6 @@ export default function Home() {
             </div>
             <ProductForm 
               barcode={scannedBarcode}
-              onBarcodeScanned={handleBarcodeScanned}
             />
           </div>
         )}
