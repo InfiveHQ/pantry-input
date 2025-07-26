@@ -8,11 +8,11 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(true);
-  const [timeoutReached, setTimeoutReached] = useState(false);
   const [scanAttempts, setScanAttempts] = useState(0);
   const [lastError, setLastError] = useState<string | null>(null);
   const [videoDimensions, setVideoDimensions] = useState<string>("");
   const [frameStyle, setFrameStyle] = useState({ width: '80%', height: '25%' });
+  const [success, setSuccess] = useState(false);
   const codeReader = useRef<BrowserMultiFormatReader | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
@@ -35,7 +35,6 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
   useEffect(() => {
     codeReader.current = new BrowserMultiFormatReader();
     let stopped = false;
-    let timeoutId: NodeJS.Timeout;
 
     const startCamera = async () => {
       try {
@@ -58,13 +57,9 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
           setVideoDimensions(`${settings.width}x${settings.height}`);
         }
         setScanning(true);
-        setTimeoutReached(false);
         setScanAttempts(0);
         setLastError(null);
-        timeoutId = setTimeout(() => {
-          setTimeoutReached(true);
-          setScanning(false);
-        }, 10000); // 10 seconds
+        setSuccess(false);
         scanLoop();
       } catch (e) {
         setError("Camera access denied or not available.");
@@ -72,21 +67,27 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
     };
 
     const scanLoop = async () => {
-      if (!videoRef.current || !codeReader.current || timeoutReached) return;
+      if (!videoRef.current || !codeReader.current || stopped) return;
       try {
         setScanAttempts(prev => prev + 1);
         console.log(`[ZXING] Scan attempt #${scanAttempts + 1}`);
         const result = await codeReader.current.decodeFromVideoElement(videoRef.current);
         if (result && result.getText()) {
-          clearTimeout(timeoutId);
+          setSuccess(true);
           setScanning(false);
           stopCamera();
-          onScan(result.getText());
+          // Small delay to show success indicator
+          setTimeout(() => {
+            onScan(result.getText());
+          }, 500);
         }
       } catch (e) {
         if (e instanceof NotFoundException) {
           setLastError("No barcode found in frame");
-          if (!stopped && !timeoutReached) scanLoop();
+          // Continue scanning immediately
+          if (!stopped) {
+            setTimeout(() => scanLoop(), 100); // Small delay to prevent overwhelming
+          }
         } else {
           const errorMsg = "Scanning error: " + (e && (e as any).message ? (e as any).message : String(e)); // eslint-disable-line @typescript-eslint/no-explicit-any
           setLastError(errorMsg);
@@ -108,11 +109,10 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
 
     startCamera();
     return () => {
-      clearTimeout(timeoutId);
       stopCamera();
     };
     // eslint-disable-next-line
-  }, [timeoutReached]);
+  }, []);
 
   return (
     <div style={{ padding: 20, textAlign: 'center' }}>
@@ -137,7 +137,7 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
           left: '50%',
           transform: 'translate(-50%, -50%)',
           ...frameStyle,
-          border: '3px solid #00ff00',
+          border: success ? '3px solid #28a745' : '3px solid #00ff00',
           borderRadius: 8,
           pointerEvents: 'none',
           zIndex: 10,
@@ -181,6 +181,51 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
             borderRight: '4px solid #00ff00'
           }}></div>
         </div>
+        
+        {/* Scanning Animation */}
+        {scanning && !success && (
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            ...frameStyle,
+            border: '2px solid transparent',
+            borderRadius: 8,
+            pointerEvents: 'none',
+            zIndex: 9,
+            background: 'linear-gradient(45deg, transparent 30%, rgba(0, 255, 0, 0.3) 50%, transparent 70%)',
+            backgroundSize: '200% 200%',
+            animation: 'scanning-pulse 2s ease-in-out infinite'
+          }}></div>
+        )}
+        
+        {/* Success indicator */}
+        {success && (
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            background: '#28a745',
+            color: 'white',
+            padding: '10px 20px',
+            borderRadius: 8,
+            fontSize: 16,
+            fontWeight: 'bold',
+            zIndex: 20
+          }}>
+            ✓ Barcode Found!
+          </div>
+        )}
+        
+        <style jsx>{`
+          @keyframes scanning-pulse {
+            0% { background-position: 0% 0%; }
+            50% { background-position: 100% 100%; }
+            100% { background-position: 0% 0%; }
+          }
+        `}</style>
       </div>
       
       {/* Debug Info */}
@@ -192,14 +237,13 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
         fontSize: 12,
         textAlign: 'left'
       }}>
-        <div><strong>Status:</strong> {scanning ? 'Scanning' : 'Stopped'}</div>
+        <div><strong>Status:</strong> {success ? 'Success!' : scanning ? 'Scanning' : 'Stopped'}</div>
         <div><strong>Attempts:</strong> {scanAttempts}</div>
         <div><strong>Video:</strong> {videoDimensions}</div>
         {lastError && <div><strong>Last Error:</strong> {lastError}</div>}
       </div>
       
-      {scanning && <div style={{ color: '#007bff', marginBottom: 10 }}>Scanning for barcode...</div>}
-      {timeoutReached && <div style={{ color: 'orange', marginBottom: 10 }}>No barcode found after 10 seconds. Try adjusting lighting, distance, or use manual entry.</div>}
+      {scanning && !success && <div style={{ color: '#007bff', marginBottom: 10 }}>Scanning for barcode...</div>}
       {error && <div style={{ color: 'red', marginBottom: 10 }}>{error}</div>}
       
       {/* Tips */}

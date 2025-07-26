@@ -1,340 +1,633 @@
 import { useState, useRef } from "react";
 import { BrowserMultiFormatReader } from "@zxing/library";
 
-const LOCATIONS = [
+const LOCATION_OPTIONS = [
+  "Shelf Top Small",
+  "Shelf Top Right",
   "Shelf Top Large",
   "Shelf Bottom",
-  "Shelf Top Small",
   "Countertop",
   "Fridge",
   "Freezer",
+  "Unknown"
 ];
 
-export default function ProductForm({ product }: { product: any }) { // eslint-disable-line @typescript-eslint/no-explicit-any
-  const fileInputRef = useRef<HTMLInputElement>(null);
+export default function ProductForm({ barcode, onBarcodeScanned }: {
+  barcode?: string;
+  onBarcodeScanned?: (code: string) => void;
+}) {
   const [formData, setFormData] = useState({
-    ...product,
-    quantity: 1,
-    completion: 100,
+    name: "",
+    brand: "",
+    category: "",
+    quantity: "",
+    completion: "",
     expiry: "",
     purchase_date: "",
-    scanned_at: new Date().toISOString().split("T")[0],
     location: "",
     tags: "",
     notes: "",
-    image: product?.image || "",
+    barcode: barcode || "",
+    image: ""
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [showCamera, setShowCamera] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const handleChange = (e: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
-  const handleSubmit = async () => {
-    // TEMP: Log env variables to debug
-    console.log('SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
-    console.log('SUPABASE_KEY:', process.env.NEXT_PUBLIC_SUPABASE_KEY);
-
-    // Convert empty string dates to null
-    const dataToSend = { ...formData };
-    if (dataToSend.purchase_date === "") dataToSend.purchase_date = null;
-    if (dataToSend.expiry === "") dataToSend.expiry = null;
-
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/pantry_items`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: process.env.NEXT_PUBLIC_SUPABASE_KEY!,
-          Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_KEY}`,
-          Prefer: "return=representation",
-        },
-        body: JSON.stringify(dataToSend),
-      });
-
-      const data = await response.json().catch(() => ({}));
-      console.log('Supabase response:', response, data);
-
-      if (!response.ok) {
-        alert(`Error adding to Supabase: ${data.message || response.statusText} (status: ${response.status})\nResponse: ${JSON.stringify(data)}`);
-        return;
-      }
-
-      // Sync to Notion
-      try {
-        console.log('Syncing to Notion...');
-        const notionResponse = await fetch('/api/add-to-notion', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(dataToSend),
-        });
-
-        const notionData = await notionResponse.json();
-        
-        if (notionResponse.ok && notionData.success) {
-          console.log('Notion sync successful:', notionData);
-          alert("Added to Supabase and synced to Notion!");
-        } else {
-          console.error('Notion sync failed:', notionData);
-          alert("Added to Supabase but failed to sync to Notion. Check console for details.");
-        }
-      } catch (notionError) {
-        console.error('Notion sync error:', notionError);
-        alert("Added to Supabase but failed to sync to Notion.");
-      }
-
-      window.location.reload();
-    } catch (error) {
-      console.error('Supabase fetch error:', error);
-      alert(`Network or JS error: ${error}`);
-    }
-  };
-
-  // Handler for barcode image upload
   const handleBarcodeImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) {
-      console.log('No file selected');
-      return;
-    }
-    
-    console.log('File uploaded:', file.name, file.type, file.size);
-    
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const imgDataUrl = event.target?.result as string;
-      console.log('Image loaded, attempting to scan...');
-      
-      try {
-        // Create an image element from the file
-        const img = new Image();
-        
-        img.onload = async () => {
-          try {
-            console.log('Image fully loaded, starting barcode scan with ZXing...');
-            const codeReader = new BrowserMultiFormatReader();
-            
-            // Use the image element directly
-            const result = await codeReader.decodeFromImage(img);
-            console.log('Scan result:', result);
-            
-                         if (result && result.getText()) {
-               const barcodeValue = result.getText();
-               console.log('Barcode found, updating form...');
-               setFormData((prev: any) => ({ ...prev, barcode: barcodeValue })); // eslint-disable-line @typescript-eslint/no-explicit-any
-              alert(`Barcode found: ${barcodeValue}`);
-              
-              // Fetch product details from OpenFoodFacts API
-              try {
-                console.log('Fetching product details for barcode:', barcodeValue);
-                const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcodeValue}.json`);
-                const data = await res.json();
-                console.log('API response:', data);
-                
-                if (data.status === 1) {
-                  console.log('Product found, updating form with:', {
-                    name: data.product.product_name,
-                    brand: data.product.brands,
-                    category: data.product.categories,
-                    image: data.product.image_url
-                  });
-                  setFormData((prev: any) => ({ // eslint-disable-line @typescript-eslint/no-explicit-any
-                    ...prev,
-                    name: data.product.product_name || prev.name,
-                    brand: data.product.brands || prev.brand,
-                    category: data.product.categories || prev.category,
-                    image: data.product.image_url || prev.image,
-                  }));
-                  alert("Product details loaded successfully!");
-                } else {
-                  console.log('Product not found in database');
-                  alert("Product not found in database, but barcode was scanned.");
-                }
-              } catch (apiError) {
-                console.error('API error:', apiError);
-                alert("Barcode scanned but failed to fetch product details.");
-              }
-            } else {
-              console.log('No barcode found in image');
-              alert("No barcode found in image. Make sure the barcode is clearly visible and not blurry.");
-            }
-                           } catch (err) {
-                   console.error('Scanning error:', err);
-                   const errorMsg = (err && (err as any).message) ? (err as any).message : String(err); // eslint-disable-line @typescript-eslint/no-explicit-any
-            alert(`Failed to scan barcode from image: ${errorMsg}\n\nYou can manually enter the barcode number in the field above.`);
-          }
-        };
-        
-        img.onerror = () => {
-          alert('Failed to load image for scanning.');
-        };
-        
-        img.src = imgDataUrl;
-      } catch (err) {
-        console.error('Image processing error:', err);
-        alert(`Failed to process image: ${err}`);
-      }
-      
-      // Clear the file input so user can re-upload the same file
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    };
-    
-    reader.onerror = (error) => {
-      console.error('FileReader error:', error);
-    };
-    
-    reader.readAsDataURL(file);
-  };
-
-  // Handler for manual barcode lookup
-  const handleManualBarcodeLookup = async () => {
-    const barcodeValue = formData.barcode;
-    if (!barcodeValue) {
-      alert("Please enter a barcode number first.");
-      return;
-    }
+    if (!file) return;
 
     try {
-      console.log('Fetching product details for barcode:', barcodeValue);
-      const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcodeValue}.json`);
-      const data = await res.json();
-      console.log('API response:', data);
+      const barcode = await scanBarcodeFromImage(file);
+      if (barcode) {
+        setFormData(prev => ({ ...prev, barcode }));
+        await fetchProductDetails(barcode);
+      }
+    } catch (error) {
+      alert(`Failed to scan barcode from image: ${error}`);
+    }
+
+    // Clear the file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const scanBarcodeFromImage = async (file: File): Promise<string | null> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const img = new Image();
+          img.onload = async () => {
+            try {
+              const { BrowserMultiFormatReader } = await import("@zxing/library");
+              const codeReader = new BrowserMultiFormatReader();
+              const result = await codeReader.decodeFromImage(img);
+              resolve(result.getText());
+            } catch (error) {
+              reject(error);
+            }
+          };
+          img.src = e.target?.result as string;
+        } catch (error) {
+          reject(error);
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const fetchProductDetails = async (barcode: string) => {
+    try {
+      const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
+      const data = await response.json();
       
-      if (data.status === 1) {
-        console.log('Product found, updating form with:', {
-          name: data.product.product_name,
-          brand: data.product.brands,
-          category: data.product.categories,
-          image: data.product.image_url
-        });
-        setFormData((prev: any) => ({ // eslint-disable-line @typescript-eslint/no-explicit-any
+      if (data.status === 1 && data.product) {
+        const product = data.product;
+        setFormData(prev => ({
           ...prev,
-          name: data.product.product_name || prev.name,
-          brand: data.product.brands || prev.brand,
-          category: data.product.categories || prev.category,
-          image: data.product.image_url || prev.image,
+          name: product.product_name || "",
+          brand: product.brands || "",
+          category: product.categories_tags?.[0]?.replace("en:", "") || "",
+          image: product.image_url || ""
         }));
-        alert("Product details loaded successfully!");
       } else {
-        console.log('Product not found in database');
         alert("Product not found in database for this barcode.");
       }
-    } catch (apiError) {
-      console.error('API error:', apiError);
-      alert("Failed to fetch product details.");
+    } catch (error) {
+      console.error("Error fetching product details:", error);
+    }
+  };
+
+  const handleManualBarcodeLookup = async () => {
+    if (formData.barcode) {
+      await fetchProductDetails(formData.barcode);
+    }
+  };
+
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        setShowCamera(true);
+      }
+    } catch (error) {
+      alert("Camera access denied or not available.");
+    }
+  };
+
+  const captureImage = () => {
+    if (videoRef.current && canvasRef.current) {
+      const context = canvasRef.current.getContext('2d');
+      if (context) {
+        canvasRef.current.width = videoRef.current.videoWidth;
+        canvasRef.current.height = videoRef.current.videoHeight;
+        context.drawImage(videoRef.current, 0, 0);
+        
+        const imageDataUrl = canvasRef.current.toDataURL('image/jpeg');
+        setCapturedImage(imageDataUrl);
+        setFormData(prev => ({ ...prev, image: imageDataUrl }));
+        
+        // Stop camera
+        const stream = videoRef.current.srcObject as MediaStream;
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
+        }
+        setShowCamera(false);
+      }
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      // Convert empty date strings to null
+      const submitData = {
+        ...formData,
+        purchase_date: formData.purchase_date || null,
+        expiry: formData.expiry || null,
+        scanned_at: new Date().toISOString().split('T')[0]
+      };
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/pantry_items`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': process.env.NEXT_PUBLIC_SUPABASE_KEY!,
+          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_KEY}`
+        },
+        body: JSON.stringify(submitData)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        alert(`Successfully added to Supabase! ID: ${data.id}`);
+        
+        // Sync to Notion
+        try {
+          const notionResponse = await fetch('/api/add-to-notion', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(submitData)
+          });
+          
+          const notionData = await notionResponse.json();
+          if (notionData.success) {
+            alert('Successfully synced to Notion!');
+          } else {
+            alert(`Notion sync failed: ${JSON.stringify(notionData)}`);
+          }
+        } catch (error) {
+          alert(`Notion sync failed: ${error}`);
+        }
+        
+        // Reset form
+        setFormData({
+          name: "",
+          brand: "",
+          category: "",
+          quantity: "",
+          completion: "",
+          expiry: "",
+          purchase_date: "",
+          location: "",
+          tags: "",
+          notes: "",
+          barcode: "",
+          image: ""
+        });
+        setCapturedImage(null);
+      } else {
+        const errorData = await response.json();
+        alert(`Error adding to Supabase: ${JSON.stringify(errorData)}`);
+      }
+    } catch (error) {
+      alert(`Error adding to Supabase: ${error}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: 400, margin: '40px auto', padding: 24, border: '1px solid #eee', borderRadius: 10, background: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,0.03)' }}>
-      <div style={{ color: '#1aaf5d', fontWeight: 600, marginBottom: 8 }}>Form loaded. File input handler attached.</div>
-      {formData.image && (
-        <img src={formData.image} alt="product" style={{ width: 100, margin: '0 auto 16px', display: 'block', borderRadius: 8 }} />
-      )}
-      <form onSubmit={e => { e.preventDefault(); handleSubmit(); }}>
-        <div style={{ marginBottom: 16 }}>
-          <label htmlFor="name" style={{ display: 'block', marginBottom: 4 }}>Product Name</label>
-          <input id="name" name="name" value={formData.name || ""} onChange={handleChange} style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 4 }} required />
+    <div style={{ padding: 20, maxWidth: 600, margin: '0 auto' }}>
+      <h2 style={{ textAlign: 'center', marginBottom: 30, color: '#333' }}>Add Pantry Item</h2>
+      
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+        {/* Image Capture Section */}
+        <div style={{ 
+          border: '2px dashed #ccc', 
+          padding: 20, 
+          borderRadius: 8, 
+          textAlign: 'center',
+          marginBottom: 20
+        }}>
+          <h3 style={{ marginBottom: 15 }}>Product Image</h3>
+          
+          {capturedImage ? (
+            <div>
+              <img 
+                src={capturedImage} 
+                alt="Captured product" 
+                style={{ 
+                  maxWidth: '100%', 
+                  maxHeight: 200, 
+                  borderRadius: 8,
+                  marginBottom: 10
+                }} 
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setCapturedImage(null);
+                  setFormData(prev => ({ ...prev, image: "" }));
+                }}
+                style={{
+                  padding: '8px 16px',
+                  background: '#dc3545',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 4,
+                  cursor: 'pointer'
+                }}
+              >
+                Remove Image
+              </button>
+            </div>
+          ) : (
+            <div>
+              <button
+                type="button"
+                onClick={startCamera}
+                style={{
+                  padding: '12px 24px',
+                  background: '#007bff',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                  fontSize: 16,
+                  marginBottom: 10
+                }}
+              >
+                📷 Take Photo
+              </button>
+              <div style={{ fontSize: 14, color: '#666' }}>
+                Capture a photo of the product for your records
+              </div>
+            </div>
+          )}
         </div>
-        <div style={{ marginBottom: 16 }}>
-          <label htmlFor="brand" style={{ display: 'block', marginBottom: 4 }}>Brand</label>
-          <input id="brand" name="brand" value={formData.brand || ""} onChange={handleChange} style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 4 }} />
-        </div>
-        <div style={{ marginBottom: 16 }}>
-          <label htmlFor="category" style={{ display: 'block', marginBottom: 4 }}>Category</label>
-          <input id="category" name="category" value={formData.category || ""} onChange={handleChange} style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 4 }} />
-        </div>
-        <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
-          <div style={{ flex: 1 }}>
-            <label htmlFor="quantity" style={{ display: 'block', marginBottom: 4 }}>Quantity</label>
-            <input id="quantity" name="quantity" type="number" min="0" value={formData.quantity || ""} onChange={handleChange} style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 4 }} />
+
+        {/* Camera Modal */}
+        {showCamera && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.8)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}>
+            <div style={{ background: 'white', padding: 20, borderRadius: 8, maxWidth: 400 }}>
+              <h3 style={{ marginBottom: 15 }}>Take Product Photo</h3>
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                style={{ width: '100%', borderRadius: 8, marginBottom: 15 }}
+              />
+              <canvas ref={canvasRef} style={{ display: 'none' }} />
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                <button
+                  type="button"
+                  onClick={captureImage}
+                  style={{
+                    padding: '10px 20px',
+                    background: '#28a745',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 4,
+                    cursor: 'pointer'
+                  }}
+                >
+                  📸 Capture
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const stream = videoRef.current?.srcObject as MediaStream;
+                    if (stream) {
+                      stream.getTracks().forEach(track => track.stop());
+                    }
+                    setShowCamera(false);
+                  }}
+                  style={{
+                    padding: '10px 20px',
+                    background: '#6c757d',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 4,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
-          <div style={{ flex: 1 }}>
-            <label htmlFor="completion" style={{ display: 'block', marginBottom: 4 }}>Completion (%)</label>
-            <input id="completion" name="completion" type="number" min="0" max="100" value={formData.completion || ""} onChange={handleChange} style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 4 }} />
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
-          <div style={{ flex: 1 }}>
-            <label htmlFor="purchase_date" style={{ display: 'block', marginBottom: 4 }}>Purchase Date <span style={{ color: '#888', fontWeight: 400 }}>(optional)</span></label>
-            <input id="purchase_date" name="purchase_date" type="date" value={formData.purchase_date || ""} onChange={handleChange} style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 4 }} placeholder="YYYY-MM-DD" />
-          </div>
-          <div style={{ flex: 1 }}>
-            <label htmlFor="expiry" style={{ display: 'block', marginBottom: 4 }}>Expiry Date <span style={{ color: '#888', fontWeight: 400 }}>(optional)</span></label>
-            <input id="expiry" name="expiry" type="date" value={formData.expiry || ""} onChange={handleChange} style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 4 }} placeholder="YYYY-MM-DD" />
-          </div>
-        </div>
-        <div style={{ marginBottom: 16 }}>
-          <label htmlFor="scanned_at" style={{ display: 'block', marginBottom: 4 }}>Scanned At</label>
-          <input id="scanned_at" name="scanned_at" type="date" value={formData.scanned_at || ""} onChange={handleChange} style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 4 }} required />
-        </div>
-        <div style={{ marginBottom: 16 }}>
-          <label htmlFor="barcode" style={{ display: 'block', marginBottom: 4 }}>Barcode</label>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-            <input 
-              id="barcode" 
-              name="barcode" 
-              value={formData.barcode || ""} 
-              onChange={handleChange} 
-              style={{ flex: 1, padding: 8, border: '1px solid #ccc', borderRadius: 4 }} 
+        )}
+
+        {/* Barcode Section */}
+        <div style={{ 
+          border: '1px solid #ddd', 
+          padding: 15, 
+          borderRadius: 8,
+          marginBottom: 20
+        }}>
+          <h3 style={{ marginBottom: 15 }}>Barcode</h3>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 10 }}>
+            <input
+              type="text"
+              name="barcode"
+              value={formData.barcode}
+              onChange={handleInputChange}
+              placeholder="Enter barcode manually"
+              style={{
+                flex: 1,
+                padding: '10px',
+                border: '1px solid #ddd',
+                borderRadius: 4,
+                fontSize: 16
+              }}
             />
-            <button 
+            <button
               type="button"
               onClick={handleManualBarcodeLookup}
-              style={{ 
-                padding: '8px 12px', 
-                background: '#007bff', 
-                color: '#fff', 
-                border: 'none', 
-                borderRadius: 4, 
-                cursor: 'pointer',
-                fontSize: 12
+              style={{
+                padding: '10px 20px',
+                background: '#17a2b8',
+                color: 'white',
+                border: 'none',
+                borderRadius: 4,
+                cursor: 'pointer'
               }}
             >
               Lookup Product
             </button>
           </div>
+          <div style={{ fontSize: 14, color: '#666', marginBottom: 10 }}>
+            Or upload a barcode image:
+          </div>
           <input
             type="file"
             accept="image/*"
+            onChange={handleBarcodeImageUpload}
             ref={fileInputRef}
-            onChange={e => {
-              console.log('File input changed');
-              handleBarcodeImageUpload(e);
-            }}
-            style={{ marginTop: 8 }}
+            style={{ fontSize: 14 }}
           />
-          <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
-                         Upload a barcode image to auto-fill, or enter barcode manually and click &quot;Lookup Product&quot;
+        </div>
+
+        {/* Product Details */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 15 }}>
+          <div>
+            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
+              Name *
+            </label>
+            <input
+              type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleInputChange}
+              required
+              style={{
+                width: '100%',
+                padding: '10px',
+                border: '1px solid #ddd',
+                borderRadius: 4,
+                fontSize: 16
+              }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
+              Brand
+            </label>
+            <input
+              type="text"
+              name="brand"
+              value={formData.brand}
+              onChange={handleInputChange}
+              style={{
+                width: '100%',
+                padding: '10px',
+                border: '1px solid #ddd',
+                borderRadius: 4,
+                fontSize: 16
+              }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
+              Category
+            </label>
+            <input
+              type="text"
+              name="category"
+              value={formData.category}
+              onChange={handleInputChange}
+              style={{
+                width: '100%',
+                padding: '10px',
+                border: '1px solid #ddd',
+                borderRadius: 4,
+                fontSize: 16
+              }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
+              Quantity
+            </label>
+            <input
+              type="number"
+              name="quantity"
+              value={formData.quantity}
+              onChange={handleInputChange}
+              style={{
+                width: '100%',
+                padding: '10px',
+                border: '1px solid #ddd',
+                borderRadius: 4,
+                fontSize: 16
+              }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
+              Completion % (Optional)
+            </label>
+            <input
+              type="number"
+              name="completion"
+              value={formData.completion}
+              onChange={handleInputChange}
+              min="0"
+              max="100"
+              style={{
+                width: '100%',
+                padding: '10px',
+                border: '1px solid #ddd',
+                borderRadius: 4,
+                fontSize: 16
+              }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
+              Location
+            </label>
+            <select
+              name="location"
+              value={formData.location || "Unknown"}
+              onChange={handleInputChange}
+              style={{
+                width: '100%',
+                padding: '10px',
+                border: '1px solid #ddd',
+                borderRadius: 4,
+                fontSize: 16
+              }}
+            >
+              {LOCATION_OPTIONS.map(option => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
+              Purchase Date (Optional)
+            </label>
+            <input
+              type="date"
+              name="purchase_date"
+              value={formData.purchase_date}
+              onChange={handleInputChange}
+              style={{
+                width: '100%',
+                padding: '10px',
+                border: '1px solid #ddd',
+                borderRadius: 4,
+                fontSize: 16
+              }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
+              Expiry Date (Optional)
+            </label>
+            <input
+              type="date"
+              name="expiry"
+              value={formData.expiry}
+              onChange={handleInputChange}
+              style={{
+                width: '100%',
+                padding: '10px',
+                border: '1px solid #ddd',
+                borderRadius: 4,
+                fontSize: 16
+              }}
+            />
           </div>
         </div>
-        <div style={{ marginBottom: 16 }}>
-          <label htmlFor="location" style={{ display: 'block', marginBottom: 4 }}>Location</label>
-          <select id="location" name="location" onChange={handleChange} value={formData.location} style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 4 }}>
-            <option value="">Select</option>
-            {LOCATIONS.map((loc) => (
-              <option key={loc} value={loc}>{loc}</option>
-            ))}
-          </select>
+
+        <div>
+          <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
+            Tags (Optional)
+          </label>
+          <input
+            type="text"
+            name="tags"
+            value={formData.tags}
+            onChange={handleInputChange}
+            placeholder="e.g., organic, gluten-free, favorite"
+            style={{
+              width: '100%',
+              padding: '10px',
+              border: '1px solid #ddd',
+              borderRadius: 4,
+              fontSize: 16
+            }}
+          />
         </div>
-        <div style={{ marginBottom: 16 }}>
-          <label htmlFor="tags" style={{ display: 'block', marginBottom: 4 }}>Tags</label>
-          <input id="tags" name="tags" value={formData.tags || ""} onChange={handleChange} style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 4 }} />
+
+        <div>
+          <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
+            Notes (Optional)
+          </label>
+          <textarea
+            name="notes"
+            value={formData.notes}
+            onChange={handleInputChange}
+            rows={3}
+            placeholder="Any additional notes about this item..."
+            style={{
+              width: '100%',
+              padding: '10px',
+              border: '1px solid #ddd',
+              borderRadius: 4,
+              fontSize: 16,
+              resize: 'vertical'
+            }}
+          />
         </div>
-        <div style={{ marginBottom: 16 }}>
-          <label htmlFor="notes" style={{ display: 'block', marginBottom: 4 }}>Notes</label>
-          <input id="notes" name="notes" value={formData.notes || ""} onChange={handleChange} style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 4 }} />
-        </div>
-        <div style={{ marginBottom: 16 }}>
-          <label htmlFor="image" style={{ display: 'block', marginBottom: 4 }}>Image URL</label>
-          <input id="image" name="image" value={formData.image || ""} onChange={handleChange} style={{ width: '100%', padding: 8, border: '1px solid #ccc', borderRadius: 4 }} />
-        </div>
-        <button type="submit" style={{ width: '100%', padding: 12, background: '#1aaf5d', color: '#fff', border: 'none', borderRadius: 4, fontWeight: 600, fontSize: 16, cursor: 'pointer', transition: 'background 0.2s' }}
-          onMouseOver={e => (e.currentTarget.style.background = '#178c4a')}
-          onMouseOut={e => (e.currentTarget.style.background = '#1aaf5d')}
+
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          style={{
+            padding: '15px 30px',
+            background: isSubmitting ? '#6c757d' : '#28a745',
+            color: 'white',
+            border: 'none',
+            borderRadius: 4,
+            cursor: isSubmitting ? 'not-allowed' : 'pointer',
+            fontSize: 16,
+            fontWeight: 'bold',
+            marginTop: 20
+          }}
         >
-          Add to Supabase
+          {isSubmitting ? 'Adding...' : 'Add to Pantry'}
         </button>
       </form>
     </div>

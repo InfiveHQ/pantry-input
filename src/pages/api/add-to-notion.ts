@@ -1,23 +1,20 @@
-import { NextApiRequest, NextApiResponse } from 'next';
 import { Client } from '@notionhq/client';
 
 const notion = new Client({
   auth: process.env.NOTION_TOKEN,
 });
 
-const DATABASE_ID = process.env.NOTION_DB_ID;
+const DATABASE_ID = process.env.NOTION_DB_ID!;
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: any, res: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
   if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method not allowed' });
+    return res.status(405).json({ success: false, message: 'Method not allowed' });
   }
 
-  // Debug: Log environment variables
-  console.log('NOTION_TOKEN exists:', !!process.env.NOTION_TOKEN);
-  console.log('NOTION_DB_ID exists:', !!process.env.NOTION_DB_ID);
-  console.log('DATABASE_ID:', DATABASE_ID);
-
   try {
+    console.log('NOTION_TOKEN:', process.env.NOTION_TOKEN ? 'Set' : 'Not set');
+    console.log('NOTION_DB_ID:', process.env.NOTION_DB_ID ? 'Set' : 'Not set');
+
     const {
       name,
       brand,
@@ -26,122 +23,147 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       completion,
       expiry,
       purchase_date,
-      scanned_at,
-      barcode,
       location,
       tags,
       notes,
+      barcode,
       image
     } = req.body;
 
-    console.log('Creating Notion page with data:', { name, brand, category });
+    // Process tags from comma-separated string to multi-select array
+    const tagsArray = tags ? tags.split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag) : [];
 
-    const response = await notion.pages.create({
-      parent: {
-        database_id: DATABASE_ID!,
+    const properties: any = { // eslint-disable-line @typescript-eslint/no-explicit-any
+      'Name': {
+        title: [
+          {
+            text: {
+              content: name || 'Untitled Item'
+            }
+          }
+        ]
       },
-      properties: {
-        Name: {
-          title: [
-            {
-              text: {
-                content: name || 'Unknown Product',
-              },
-            },
-          ],
-        },
-        Brand: {
+      'Brand': {
+        rich_text: [
+          {
+            text: {
+              content: brand || ''
+            }
+          }
+        ]
+      },
+      'Category': {
+        rich_text: [
+          {
+            text: {
+              content: category || ''
+            }
+          }
+        ]
+      },
+      'Quantity': {
+        rich_text: [
+          {
+            text: {
+              content: quantity ? quantity.toString() : ''
+            }
+          }
+        ]
+      },
+      'Completion %': {
+        number: completion ? parseFloat(completion) : null
+      },
+      'Expiry': {
+        date: expiry ? { start: expiry } : null
+      },
+      'Purchase Date': {
+        date: purchase_date ? { start: purchase_date } : null
+      },
+      'Location': {
+        rich_text: [
+          {
+            text: {
+              content: location || ''
+            }
+          }
+        ]
+      },
+      'Tags': {
+        multi_select: tagsArray.map((tag: string) => ({ name: tag }))
+      },
+      'Notes': {
+        rich_text: [
+          {
+            text: {
+              content: notes || ''
+            }
+          }
+        ]
+      },
+      'Barcode': {
+        rich_text: [
+          {
+            text: {
+              content: barcode || ''
+            }
+          }
+        ]
+      }
+    };
+
+    // Handle image - if it's a base64 data URL, store it as rich_text
+    // If it's a URL, store it as files
+    if (image) {
+      if (image.startsWith('data:')) {
+        // Base64 image - store as rich_text (data URL)
+        properties['Product Image'] = {
           rich_text: [
             {
               text: {
-                content: brand || '',
-              },
-            },
-          ],
-        },
-        Category: {
-          rich_text: [
-            {
-              text: {
-                content: category || '',
-              },
-            },
-          ],
-        },
-        Quantity: {
-          rich_text: [
-            {
-              text: {
-                content: quantity?.toString() || '0',
-              },
-            },
-          ],
-        },
-        'Completion %': {
-          number: completion || 100,
-        },
-        Expiry: {
-          date: expiry ? { start: expiry } : null,
-        },
-        'Purchase Date': {
-          date: purchase_date ? { start: purchase_date } : null,
-        },
-        'Scanned At': {
-          date: scanned_at ? { start: scanned_at } : null,
-        },
-        Barcode: {
-          rich_text: [
-            {
-              text: {
-                content: barcode || '',
-              },
-            },
-          ],
-        },
-        Location: {
-          select: {
-            name: location || 'Unknown',
-          },
-        },
-        Tags: {
-          multi_select: tags ? tags.split(',').map((tag: string) => ({ name: tag.trim() })) : [],
-        },
-        Notes: {
-          rich_text: [
-            {
-              text: {
-                content: notes || '',
-              },
-            },
-          ],
-        },
-        'Product Image': {
-          files: image ? [
+                content: image
+              }
+            }
+          ]
+        };
+      } else {
+        // URL image - store as files
+        properties['Product Image'] = {
+          files: [
             {
               name: 'Product Image',
               type: 'external',
               external: {
-                url: image,
-              },
-            },
-          ] : [],
-        },
+                url: image
+              }
+            }
+          ]
+        };
+      }
+    }
+
+    console.log('Creating Notion page with properties:', JSON.stringify(properties, null, 2));
+
+    const response = await notion.pages.create({
+      parent: {
+        database_id: DATABASE_ID,
       },
+      properties: properties,
     });
 
-    console.log('Notion page created successfully:', response.id);
+    console.log('Notion API response:', response);
 
-    res.status(200).json({ 
-      success: true, 
-      notionPageId: response.id,
-      message: 'Added to Notion successfully' 
+    res.status(200).json({
+      success: true,
+      message: 'Successfully added to Notion',
+      pageId: response.id
     });
-  } catch (error) {
-    console.error('Notion API error:', error);
-    res.status(500).json({ 
-      success: false, 
+
+  } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+    console.error('Error adding to Notion:', error);
+    res.status(500).json({
+      success: false,
       message: 'Failed to add to Notion',
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error.message
     });
   }
 }
