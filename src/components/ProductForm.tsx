@@ -424,9 +424,14 @@ export default function ProductForm({ barcode, productData }: {
     }
   };
 
-  return (
-    <div style={{ padding: 20, maxWidth: 600, margin: '0 auto' }}>
-      <h2 style={{ textAlign: 'center', marginBottom: 30, color: '#333' }}>Add Pantry Item</h2>
+     return (
+     <div style={{ 
+       padding: 20, 
+       maxWidth: 600, 
+       margin: '0 auto',
+       paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 20px))' // Extra bottom padding for mobile
+     }}>
+       <h2 style={{ textAlign: 'center', marginBottom: 30, color: '#333' }}>Add Pantry Item</h2>
       
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
         {/* Image Capture Section */}
@@ -553,22 +558,31 @@ export default function ProductForm({ barcode, productData }: {
           )}
         </div>
 
-        {/* Camera Modal */}
-        {showCamera && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0,0,0,0.8)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000
-          }}>
-                         <div style={{ background: 'white', padding: 20, borderRadius: 8, maxWidth: 400 }}>
+                 {/* Camera Modal */}
+         {showCamera && (
+           <div style={{
+             position: 'fixed',
+             top: 0,
+             left: 0,
+             right: 0,
+             bottom: 0,
+             background: 'rgba(0,0,0,0.8)',
+             display: 'flex',
+             flexDirection: 'column',
+             alignItems: 'center',
+             justifyContent: 'center',
+             zIndex: 1000,
+             paddingBottom: 'env(safe-area-inset-bottom, 20px)' // Add safe area for mobile
+           }}>
+             <div style={{ 
+               background: 'white', 
+               padding: 20, 
+               borderRadius: 8, 
+               maxWidth: 400,
+               width: '90%',
+               maxHeight: '80vh',
+               overflow: 'auto'
+             }}>
                <h3 style={{ marginBottom: 15 }}>Take Product Photo</h3>
                
                {/* Camera Selection */}
@@ -596,23 +610,34 @@ export default function ProductForm({ barcode, productData }: {
                  playsInline
                  style={{ width: '100%', borderRadius: 8, marginBottom: 15 }}
                />
-              <canvas ref={canvasRef} style={{ display: 'none' }} />
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-                <button
-                  type="button"
-                  onClick={captureImage}
-                  style={{
-                    padding: '10px 20px',
-                    background: '#28a745',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: 4,
-                    cursor: 'pointer'
-                  }}
-                >
-                  📸 Capture
-                </button>
-                                 <button
+               <canvas ref={canvasRef} style={{ display: 'none' }} />
+               
+               {/* Camera Controls */}
+               <div style={{ 
+                 display: 'flex', 
+                 gap: 10, 
+                 justifyContent: 'center',
+                 marginTop: 15,
+                 paddingBottom: 10 // Extra padding for mobile
+               }}>
+                 <button
+                   type="button"
+                   onClick={captureImage}
+                   style={{
+                     padding: '12px 24px',
+                     background: '#28a745',
+                     color: 'white',
+                     border: 'none',
+                     borderRadius: 8,
+                     cursor: 'pointer',
+                     fontSize: 16,
+                     fontWeight: 'bold',
+                     minWidth: 100
+                   }}
+                 >
+                   📸 Capture
+                 </button>
+                 <button
                    type="button"
                    onClick={() => {
                      // Clean up camera stream
@@ -623,21 +648,24 @@ export default function ProductForm({ barcode, productData }: {
                      }
                      setShowCamera(false);
                    }}
-                  style={{
-                    padding: '10px 20px',
-                    background: '#6c757d',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: 4,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+                   style={{
+                     padding: '12px 24px',
+                     background: '#6c757d',
+                     color: 'white',
+                     border: 'none',
+                     borderRadius: 8,
+                     cursor: 'pointer',
+                     fontSize: 16,
+                     fontWeight: 'bold',
+                     minWidth: 100
+                   }}
+                 >
+                   Cancel
+                 </button>
+               </div>
+             </div>
+           </div>
+         )}
 
                  {/* Barcode Section */}
          <div style={{ 
