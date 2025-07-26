@@ -33,12 +33,21 @@ export default async function handler(req: any, res: any) { // eslint-disable-li
     // Process tags from comma-separated string to multi-select array
     const tagsArray = tags ? tags.split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag) : [];
 
+    // Handle image - only send URLs, not base64
+    const imageProperty = image && !image.startsWith('data:') ? {
+      files: [{
+        name: 'Product Image',
+        type: 'external' as const,
+        external: { url: image }
+      }]
+    } : undefined;
+
     const properties: any = { // eslint-disable-line @typescript-eslint/no-explicit-any
       'Name': {
         title: [
           {
             text: {
-              content: name || 'Untitled Item'
+              content: name || 'Untitled Product'
             }
           }
         ]
@@ -71,17 +80,13 @@ export default async function handler(req: any, res: any) { // eslint-disable-li
         ]
       },
       'Completion %': {
-        number: completion ? parseFloat(completion) : null
+        number: completion || null
       },
       'Expiry': {
         date: expiry ? { start: expiry } : null
       },
       'Purchase Date': {
         date: purchase_date ? { start: purchase_date } : null
-      },
-      'Location': location ? { select: { name: location } } : undefined,
-      'Tags': {
-        multi_select: tagsArray.map((tag: string) => ({ name: tag }))
       },
       'Notes': {
         rich_text: [
@@ -103,43 +108,24 @@ export default async function handler(req: any, res: any) { // eslint-disable-li
       }
     };
 
-    // Handle image - if it's a base64 data URL, store it as rich_text
-    // If it's a URL, store it as files
-    if (image) {
-      if (image.startsWith('data:')) {
-        // Base64 image - store as rich_text (data URL)
-        properties['Product Image'] = {
-          rich_text: [
-            {
-              text: {
-                content: image
-              }
-            }
-          ]
-        };
-      } else {
-        // URL image - store as files
-        properties['Product Image'] = {
-          files: [
-            {
-              name: 'Product Image',
-              type: 'external',
-              external: {
-                url: image
-              }
-            }
-          ]
-        };
-      }
+    // Add optional properties only if they have values
+    if (location) {
+      properties['Location'] = { select: { name: location } };
+    }
+    
+    if (tags) {
+      properties['Tags'] = {
+        multi_select: tags.split(',').map((tag: string) => ({ name: tag.trim() }))
+      };
+    }
+    
+    if (imageProperty) {
+      properties['Product Image'] = imageProperty;
     }
 
-    console.log('Creating Notion page with properties:', JSON.stringify(properties, null, 2));
-
     const response = await notion.pages.create({
-      parent: {
-        database_id: DATABASE_ID,
-      },
-      properties: properties,
+      parent: { database_id: DATABASE_ID },
+      properties: properties
     });
 
     console.log('Notion API response:', response);

@@ -179,7 +179,7 @@ export default function ProductForm({ barcode, onBarcodeScanned }: {
     }
   };
 
-  const captureImage = () => {
+  const captureImage = async () => {
     if (videoRef.current && canvasRef.current) {
       const context = canvasRef.current.getContext('2d');
       if (context) {
@@ -188,15 +188,39 @@ export default function ProductForm({ barcode, onBarcodeScanned }: {
         context.drawImage(videoRef.current, 0, 0);
         
         const imageDataUrl = canvasRef.current.toDataURL('image/jpeg');
-        setCapturedImage(imageDataUrl);
-        setFormData(prev => ({ ...prev, image: imageDataUrl }));
         
-        // Stop camera
+        // Stop camera first
         const stream = videoRef.current.srcObject as MediaStream;
         if (stream) {
           stream.getTracks().forEach(track => track.stop());
         }
         setShowCamera(false);
+        
+        // Upload image to Supabase Storage
+        try {
+          const response = await fetch('/api/upload-image', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ imageData: imageDataUrl })
+          });
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            // Use the public URL instead of base64
+            setCapturedImage(result.url);
+            setFormData(prev => ({ ...prev, image: result.url }));
+            console.log('Image uploaded successfully:', result.url);
+          } else {
+            console.error('Upload failed:', result.error);
+            alert('Failed to upload image. Please try again.');
+          }
+        } catch (error) {
+          console.error('Upload error:', error);
+          alert('Failed to upload image. Please try again.');
+        }
       }
     }
   };
