@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import Image from "next/image";
 
 const LOCATION_OPTIONS = [
   "Shelf Top Small",
@@ -352,14 +353,17 @@ export default function ProductForm({ barcode, productData }: {
           
           {capturedImage ? (
             <div>
-              <img 
+              <Image 
                 src={capturedImage} 
                 alt="Captured product" 
+                width={400}
+                height={200}
                 style={{ 
                   maxWidth: '100%', 
                   maxHeight: 200, 
                   borderRadius: 8,
-                  marginBottom: 10
+                  marginBottom: 10,
+                  objectFit: 'cover'
                 }} 
               />
               <button
@@ -382,14 +386,17 @@ export default function ProductForm({ barcode, productData }: {
             </div>
           ) : formData.image ? (
             <div>
-              <img 
+              <Image 
                 src={formData.image} 
                 alt="Product from OpenFoodFacts" 
+                width={400}
+                height={200}
                 style={{ 
                   maxWidth: '100%', 
                   maxHeight: 200, 
                   borderRadius: 8,
-                  marginBottom: 10
+                  marginBottom: 10,
+                  objectFit: 'cover'
                 }} 
               />
               <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>

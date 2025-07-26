@@ -341,7 +341,7 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
       <div style={{ marginTop: 20, fontSize: 14, color: '#666' }}>
         <p>Position a barcode in front of the camera. Scanning happens automatically.</p>
         <p>Make sure the barcode is well-lit and clearly visible.</p>
-        <p>Or use "Manual Entry" to type the barcode number.</p>
+        <p>Or use &quot;Manual Entry&quot; to type the barcode number.</p>
       </div>
     </div>
   );
