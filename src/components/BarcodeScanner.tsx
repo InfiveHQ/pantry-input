@@ -84,26 +84,34 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
           videoRef.current.setAttribute('playsinline', 'true');
           videoRef.current.setAttribute('autoplay', 'true');
           
-          // Wait for video to be ready
-          await new Promise((resolve, reject) => {
-            if (videoRef.current) {
-              videoRef.current.onloadedmetadata = () => {
-                console.log('[CAMERA] Video metadata loaded');
-                resolve(true);
-              };
-              videoRef.current.onerror = (error) => {
-                console.error('[CAMERA] Video error:', error);
-                reject(error);
-              };
-              // Set a timeout in case the video doesn't load
-              setTimeout(() => reject(new Error('Video load timeout')), 5000);
-            } else {
-              reject(new Error('Video ref is null'));
-            }
-          });
+          // Try to wait for video to be ready, but don't fail if it times out
+          try {
+            await new Promise((resolve, reject) => {
+              if (videoRef.current) {
+                videoRef.current.onloadedmetadata = () => {
+                  console.log('[CAMERA] Video metadata loaded');
+                  resolve(true);
+                };
+                videoRef.current.onerror = (error) => {
+                  console.error('[CAMERA] Video error:', error);
+                  reject(error);
+                };
+                // Set a longer timeout for mobile devices
+                setTimeout(() => reject(new Error('Video load timeout')), 10000);
+              } else {
+                reject(new Error('Video ref is null'));
+              }
+            });
+          } catch (error) {
+            console.warn('[CAMERA] Video metadata load failed, continuing anyway:', error);
+          }
           
-          await videoRef.current.play();
-          console.log('[CAMERA] Video playing:', videoRef.current.readyState);
+          try {
+            await videoRef.current.play();
+            console.log('[CAMERA] Video playing:', videoRef.current.readyState);
+          } catch (playError) {
+            console.warn('[CAMERA] Video play failed, continuing anyway:', playError);
+          }
           
           // Get video dimensions
           const track = stream.getVideoTracks()[0];
@@ -162,9 +170,9 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
         }
       }
       
-      // Continue scanning if not stopped
+      // Continue scanning if not stopped - with proper timeout
       if (!stopped) {
-        // Use setTimeout with a small delay to prevent overwhelming
+        // Use setTimeout with a proper delay to prevent overwhelming
         setTimeout(() => scanLoop(), 100);
       }
     };
@@ -204,15 +212,6 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
               <option key={cam.deviceId} value={cam.deviceId}>{cam.label || `Camera ${cam.deviceId}`}</option>
             ))}
           </select>
-          {/* Debug: List all detected cameras */}
-          <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
-            <div>Detected cameras:</div>
-            <ul style={{ margin: 0, paddingLeft: 16 }}>
-              {cameras.map(cam => (
-                <li key={cam.deviceId}>{cam.label || cam.deviceId}</li>
-              ))}
-            </ul>
-          </div>
         </div>
       )}
       <div style={{ marginBottom: 20, position: 'relative' }}>
@@ -228,7 +227,7 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
           }}
         />
         
-        {/* Scanning Frame Overlay */}
+        {/* Simple Scanning Frame Overlay */}
         <div style={{
           position: 'absolute',
           top: '50%',
@@ -280,24 +279,6 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
           }}></div>
         </div>
         
-        {/* Scanning Animation */}
-        {scanning && !success && (
-          <div style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            ...frameStyle,
-            border: '2px solid transparent',
-            borderRadius: 8,
-            pointerEvents: 'none',
-            zIndex: 9,
-            background: 'linear-gradient(45deg, transparent 30%, rgba(0, 255, 0, 0.3) 50%, transparent 70%)',
-            backgroundSize: '200% 200%',
-            animation: 'scanning-pulse 2s ease-in-out infinite'
-          }}></div>
-        )}
-        
         {/* Success indicator */}
         {success && (
           <div style={{
@@ -316,14 +297,6 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
             ✓ Barcode Found!
           </div>
         )}
-        
-        <style jsx>{`
-          @keyframes scanning-pulse {
-            0% { background-position: 0% 0%; }
-            50% { background-position: 100% 100%; }
-            100% { background-position: 0% 0%; }
-          }
-        `}</style>
       </div>
       
       {/* Debug Info */}
