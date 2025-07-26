@@ -92,7 +92,7 @@ export default function ProductForm({ barcode, productData }: {
       const reader = new FileReader();
       reader.onload = async (e) => {
         try {
-          const img = new Image();
+          const img = new window.Image();
           img.onload = async () => {
             try {
               const { BrowserMultiFormatReader } = await import("@zxing/library");
