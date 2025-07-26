@@ -79,15 +79,7 @@ export default async function handler(req: any, res: any) { // eslint-disable-li
       'Purchase Date': {
         date: purchase_date ? { start: purchase_date } : null
       },
-      'Location': {
-        rich_text: [
-          {
-            text: {
-              content: location || ''
-            }
-          }
-        ]
-      },
+      'Location': location ? { select: { name: location } } : undefined,
       'Tags': {
         multi_select: tagsArray.map((tag: string) => ({ name: tag }))
       },

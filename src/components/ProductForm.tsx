@@ -20,7 +20,7 @@ export default function ProductForm({ barcode, onBarcodeScanned }: {
     name: "",
     brand: "",
     category: "",
-    quantity: "",
+    quantity: "1",
     completion: "",
     expiry: "",
     purchase_date: "",
@@ -162,6 +162,8 @@ export default function ProductForm({ barcode, onBarcodeScanned }: {
         ...formData,
         purchase_date: formData.purchase_date || null,
         expiry: formData.expiry || null,
+        quantity: formData.quantity ? parseFloat(formData.quantity) : null,
+        completion: formData.completion ? parseFloat(formData.completion) : null,
         scanned_at: new Date().toISOString().split('T')[0]
       };
 
@@ -176,8 +178,13 @@ export default function ProductForm({ barcode, onBarcodeScanned }: {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        alert(`Successfully added to Supabase! ID: ${data.id}`);
+        // Only try to parse JSON if there is content
+        let data = null;
+        const text = await response.text();
+        if (text) {
+          data = JSON.parse(text);
+        }
+        alert(`Successfully added to Supabase!${data && data.id ? ' ID: ' + data.id : ''}`);
         
         // Sync to Notion
         try {
@@ -257,7 +264,7 @@ export default function ProductForm({ barcode, onBarcodeScanned }: {
                 type="button"
                 onClick={() => {
                   setCapturedImage(null);
-                  setFormData(prev => ({ ...prev, image: "" }));
+                  setFormData(prev => ({ ...prev, image: prev.image }));
                 }}
                 style={{
                   padding: '8px 16px',
@@ -270,6 +277,51 @@ export default function ProductForm({ barcode, onBarcodeScanned }: {
               >
                 Remove Image
               </button>
+            </div>
+          ) : formData.image ? (
+            <div>
+              <img 
+                src={formData.image} 
+                alt="Product from OpenFoodFacts" 
+                style={{ 
+                  maxWidth: '100%', 
+                  maxHeight: 200, 
+                  borderRadius: 8,
+                  marginBottom: 10
+                }} 
+              />
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                <button
+                  type="button"
+                  onClick={startCamera}
+                  style={{
+                    padding: '8px 16px',
+                    background: '#007bff',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 4,
+                    cursor: 'pointer'
+                  }}
+                >
+                  📷 Take Photo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormData(prev => ({ ...prev, image: "" }));
+                  }}
+                  style={{
+                    padding: '8px 16px',
+                    background: '#dc3545',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 4,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Remove Image
+                </button>
+              </div>
             </div>
           ) : (
             <div>
@@ -516,7 +568,7 @@ export default function ProductForm({ barcode, onBarcodeScanned }: {
             </label>
             <select
               name="location"
-              value={formData.location || "Unknown"}
+              value={formData.location}
               onChange={handleInputChange}
               style={{
                 width: '100%',
@@ -526,6 +578,7 @@ export default function ProductForm({ barcode, onBarcodeScanned }: {
                 fontSize: 16
               }}
             >
+              <option value="">-- Select Location --</option>
               {LOCATION_OPTIONS.map(option => (
                 <option key={option} value={option}>{option}</option>
               ))}

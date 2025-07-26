@@ -71,6 +71,7 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
       try {
         setScanAttempts(prev => prev + 1);
         console.log(`[ZXING] Scan attempt #${scanAttempts + 1}`);
+        
         const result = await codeReader.current.decodeFromVideoElement(videoRef.current);
         if (result && result.getText()) {
           setSuccess(true);
@@ -80,19 +81,21 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
           setTimeout(() => {
             onScan(result.getText());
           }, 500);
+          return; // Exit the loop on success
         }
       } catch (e) {
         if (e instanceof NotFoundException) {
           setLastError("No barcode found in frame");
-          // Continue scanning immediately
-          if (!stopped) {
-            setTimeout(() => scanLoop(), 100); // Small delay to prevent overwhelming
-          }
         } else {
           const errorMsg = "Scanning error: " + (e && (e as any).message ? (e as any).message : String(e)); // eslint-disable-line @typescript-eslint/no-explicit-any
           setLastError(errorMsg);
           setError(errorMsg);
         }
+      }
+      
+      // Continue scanning if not stopped
+      if (!stopped) {
+        setTimeout(() => scanLoop(), 100); // Small delay to prevent overwhelming
       }
     };
 
