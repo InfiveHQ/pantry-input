@@ -34,6 +34,8 @@ export default function ProductForm({ barcode, productData }: {
   const [isLoadingProduct, setIsLoadingProduct] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [showCamera, setShowCamera] = useState(false);
+  const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
+  const [selectedCamera, setSelectedCamera] = useState<string | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -58,6 +60,29 @@ export default function ProductForm({ barcode, productData }: {
       setFormData(prev => ({ ...prev, barcode }));
     }
   }, [barcode, productData]);
+
+  // List available cameras
+  useEffect(() => {
+    async function getCameras() {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoInputs = devices.filter(d => d.kind === 'videoinput');
+        setCameras(videoInputs);
+        if (videoInputs.length > 0 && !selectedCamera) {
+          // Try to find back camera first
+          const backCamera = videoInputs.find(cam => 
+            cam.label.toLowerCase().includes('back') || 
+            cam.label.toLowerCase().includes('environment') ||
+            cam.label.toLowerCase().includes('rear')
+          );
+          setSelectedCamera(backCamera?.deviceId || videoInputs[0].deviceId);
+        }
+      } catch (err) {
+        console.error('Error getting cameras:', err);
+      }
+    }
+    getCameras();
+  }, [selectedCamera]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -160,25 +185,39 @@ export default function ProductForm({ barcode, productData }: {
     try {
       console.log('Requesting camera access...');
       
-      // Try different camera constraints with fallbacks
-      const constraints = [
-        // Primary: environment-facing camera with specific settings
-        {
-          video: { 
-            facingMode: 'environment',
-            width: { ideal: 1280, min: 320, max: 1920 },
-            height: { ideal: 720, min: 240, max: 1080 }
-          } 
-        },
-        // Fallback 1: simpler environment-facing
-        {
-          video: { facingMode: 'environment' }
-        },
-        // Fallback 2: any camera
-        {
-          video: true
-        }
-      ];
+             // Try different camera constraints with fallbacks
+       const constraints = [
+         // Primary: use selected camera if available
+         ...(selectedCamera ? [{
+           video: { 
+             deviceId: { exact: selectedCamera },
+             width: { ideal: 1280, min: 320, max: 1920 },
+             height: { ideal: 720, min: 240, max: 1080 }
+           } 
+         }] : []),
+         // Fallback 1: environment-facing camera (back camera) with specific settings
+         {
+           video: { 
+             facingMode: { ideal: 'environment' },
+             width: { ideal: 1280, min: 320, max: 1920 },
+             height: { ideal: 720, min: 240, max: 1080 }
+           } 
+         },
+         // Fallback 2: explicit environment-facing
+         {
+           video: { facingMode: 'environment' }
+         },
+         // Fallback 3: try to get any camera but prefer back camera
+         {
+           video: { 
+             facingMode: { ideal: 'environment', fallback: 'user' }
+           }
+         },
+         // Fallback 4: any camera
+         {
+           video: true
+         }
+       ];
       
       let stream: MediaStream | null = null;
       let lastError: Error | null = null;
@@ -529,14 +568,34 @@ export default function ProductForm({ barcode, productData }: {
             justifyContent: 'center',
             zIndex: 1000
           }}>
-            <div style={{ background: 'white', padding: 20, borderRadius: 8, maxWidth: 400 }}>
-              <h3 style={{ marginBottom: 15 }}>Take Product Photo</h3>
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                style={{ width: '100%', borderRadius: 8, marginBottom: 15 }}
-              />
+                         <div style={{ background: 'white', padding: 20, borderRadius: 8, maxWidth: 400 }}>
+               <h3 style={{ marginBottom: 15 }}>Take Product Photo</h3>
+               
+               {/* Camera Selection */}
+               {cameras.length > 1 && (
+                 <div style={{ marginBottom: 15 }}>
+                   <label htmlFor="camera-select" style={{ marginRight: 8 }}>Camera:</label>
+                   <select
+                     id="camera-select"
+                     value={selectedCamera}
+                     onChange={e => setSelectedCamera(e.target.value)}
+                     style={{ fontSize: 16, padding: 4 }}
+                   >
+                     {cameras.map(cam => (
+                       <option key={cam.deviceId} value={cam.deviceId}>
+                         {cam.label || `Camera ${cam.deviceId.slice(0, 8)}...`}
+                       </option>
+                     ))}
+                   </select>
+                 </div>
+               )}
+               
+               <video
+                 ref={videoRef}
+                 autoPlay
+                 playsInline
+                 style={{ width: '100%', borderRadius: 8, marginBottom: 15 }}
+               />
               <canvas ref={canvasRef} style={{ display: 'none' }} />
               <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
                 <button
