@@ -7,12 +7,16 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const [scanning, setScanning] = useState(true);
+  const [timeoutReached, setTimeoutReached] = useState(false);
   const codeReader = useRef<BrowserMultiFormatReader | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
     codeReader.current = new BrowserMultiFormatReader();
     let stopped = false;
+    let scanAttempts = 0;
+    let timeoutId: NodeJS.Timeout;
 
     const startCamera = async () => {
       try {
@@ -25,6 +29,12 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
           videoRef.current.setAttribute('playsinline', 'true');
           await videoRef.current.play();
         }
+        setScanning(true);
+        setTimeoutReached(false);
+        timeoutId = setTimeout(() => {
+          setTimeoutReached(true);
+          setScanning(false);
+        }, 10000); // 10 seconds
         scanLoop();
       } catch (e) {
         setError("Camera access denied or not available.");
@@ -32,16 +42,20 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
     };
 
     const scanLoop = async () => {
-      if (!videoRef.current || !codeReader.current) return;
+      if (!videoRef.current || !codeReader.current || timeoutReached) return;
       try {
+        scanAttempts++;
+        console.log(`[ZXING] Scan attempt #${scanAttempts}`);
         const result = await codeReader.current.decodeFromVideoElement(videoRef.current);
         if (result && result.getText()) {
+          clearTimeout(timeoutId);
+          setScanning(false);
           stopCamera();
           onScan(result.getText());
         }
       } catch (e) {
         if (e instanceof NotFoundException) {
-          if (!stopped) scanLoop();
+          if (!stopped && !timeoutReached) scanLoop();
         } else {
           setError("Scanning error: " + (e && (e as any).message ? (e as any).message : String(e))); // eslint-disable-line @typescript-eslint/no-explicit-any
         }
@@ -61,10 +75,11 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
 
     startCamera();
     return () => {
+      clearTimeout(timeoutId);
       stopCamera();
     };
     // eslint-disable-next-line
-  }, []);
+  }, [timeoutReached]);
 
   return (
     <div style={{ padding: 20, textAlign: 'center' }}>
@@ -82,6 +97,8 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
           }}
         />
       </div>
+      {scanning && <div style={{ color: '#007bff', marginBottom: 10 }}>Scanning for barcode...</div>}
+      {timeoutReached && <div style={{ color: 'orange', marginBottom: 10 }}>No barcode found after 10 seconds. Try adjusting lighting, distance, or use manual entry.</div>}
       {error && <div style={{ color: 'red', marginBottom: 10 }}>{error}</div>}
       <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
         <button
