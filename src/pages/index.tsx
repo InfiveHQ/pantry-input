@@ -5,8 +5,9 @@ import BarcodeScanner from "../components/BarcodeScanner";
 export default function Home() {
   const [showScanner, setShowScanner] = useState(false);
   const [scannedBarcode, setScannedBarcode] = useState<string>("");
-  const [productData, setProductData] = useState<any>(null);
+  const [productData, setProductData] = useState<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleBarcodeScanned = (barcode: string) => {
     console.log('[MAIN] Barcode scanned:', barcode);
     setScannedBarcode(barcode);

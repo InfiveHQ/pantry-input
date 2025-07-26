@@ -13,7 +13,7 @@ const LOCATION_OPTIONS = [
 
 export default function ProductForm({ barcode, productData }: {
   barcode?: string;
-  productData?: any;
+  productData?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
 }) {
   const [formData, setFormData] = useState({
     name: "",

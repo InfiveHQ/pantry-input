@@ -11,10 +11,8 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
   const [success, setSuccess] = useState(false);
   const [scanAttempts, setScanAttempts] = useState(0);
   const [lastError, setLastError] = useState<string | null>(null);
-  const [videoDimensions, setVideoDimensions] = useState<string>("");
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
   const [selectedCamera, setSelectedCamera] = useState<string | undefined>(undefined);
-  const [debugInfo, setDebugInfo] = useState<string>("");
   
   const codeReader = useRef<BrowserMultiFormatReader | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -31,11 +29,9 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
         if (videoInputs.length > 0 && !selectedCamera) {
           setSelectedCamera(videoInputs[0].deviceId);
         }
-        setDebugInfo(`Found ${videoInputs.length} camera(s)`);
-      } catch (err) {
-        console.error('Error getting cameras:', err);
-        setDebugInfo(`Camera enumeration error: ${err}`);
-      }
+              } catch (err) {
+          console.error('Error getting cameras:', err);
+        }
     }
     getCameras();
   }, [selectedCamera]);
@@ -45,9 +41,55 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
     let mounted = true;
     
     const initScanner = async () => {
+      const startScanning = async () => {
+        if (!videoRef.current || !codeReader.current || !scanningRef.current) {
+          return;
+        }
+        
+        try {
+          setScanAttempts(prev => prev + 1);
+          console.log(`[SCAN] Attempt #${scanAttempts + 1}`);
+          
+          // Clear any existing timeout
+          if (scanTimeoutRef.current) {
+            clearTimeout(scanTimeoutRef.current);
+          }
+          
+          const result = await codeReader.current.decodeFromVideoElement(videoRef.current);
+          
+          if (result && result.getText()) {
+            const barcodeText = result.getText();
+            console.log('[SCAN] Barcode found:', barcodeText);
+            setSuccess(true);
+            setScanning(false);
+            scanningRef.current = false;
+            
+            // Stop camera
+            stopCamera();
+            
+            setTimeout(() => {
+              onScan(barcodeText);
+            }, 500);
+            return;
+          }
+        } catch (err) {
+          if (err instanceof NotFoundException) {
+            setLastError("No barcode found");
+            console.log('[SCAN] No barcode found');
+          } else {
+            console.error('[SCAN] Error:', err);
+            const errorMsg = `Scan error: ${err instanceof Error ? err.message : String(err)}`;
+            setLastError(errorMsg);
+          }
+        }
+        
+        // Continue scanning if still active
+        if (scanningRef.current) {
+          scanTimeoutRef.current = setTimeout(() => startScanning(), 200);
+        }
+      };
       try {
         setError(null);
-        setDebugInfo("Initializing scanner...");
         
         // Initialize ZXing reader
         codeReader.current = new BrowserMultiFormatReader();
@@ -64,7 +106,6 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
         };
         
         console.log('[CAMERA] Requesting camera with constraints:', constraints);
-        setDebugInfo("Requesting camera access...");
         
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
         streamRef.current = stream;
@@ -86,7 +127,6 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
               videoRef.current!.onloadedmetadata = () => {
                 clearTimeout(timeout);
                 console.log('[CAMERA] Video ready');
-                setDebugInfo("Video ready, starting scan...");
                 resolve();
               };
               
@@ -97,11 +137,6 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
             }
           });
           
-          // Get video dimensions
-          const track = stream.getVideoTracks()[0];
-          const settings = track.getSettings();
-          setVideoDimensions(`${settings.width}x${settings.height}`);
-          
           // Start scanning
           setScanning(true);
           scanningRef.current = true;
@@ -111,7 +146,6 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
         console.error('[CAMERA] Error:', err);
         const errorMsg = `Camera error: ${err instanceof Error ? err.message : String(err)}`;
         setError(errorMsg);
-        setDebugInfo(`Camera failed: ${errorMsg}`);
         
         // Try fallback to any available camera
         if (err instanceof Error && err.name === 'NotAllowedError') {
@@ -130,58 +164,7 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
     };
   }, [selectedCamera]);
 
-  const startScanning = async () => {
-    if (!videoRef.current || !codeReader.current || !scanningRef.current) {
-      setDebugInfo("Cannot start scanning - missing dependencies");
-      return;
-    }
-    
-    try {
-      setScanAttempts(prev => prev + 1);
-      console.log(`[SCAN] Attempt #${scanAttempts + 1}`);
-      setDebugInfo(`Scanning attempt #${scanAttempts + 1}...`);
-      
-      // Clear any existing timeout
-      if (scanTimeoutRef.current) {
-        clearTimeout(scanTimeoutRef.current);
-      }
-      
-      const result = await codeReader.current.decodeFromVideoElement(videoRef.current);
-      
-      if (result && result.getText()) {
-        const barcodeText = result.getText();
-        console.log('[SCAN] Barcode found:', barcodeText);
-        setDebugInfo(`Barcode found: ${barcodeText}`);
-        setSuccess(true);
-        setScanning(false);
-        scanningRef.current = false;
-        
-        // Stop camera
-        stopCamera();
-        
-        setTimeout(() => {
-          onScan(barcodeText);
-        }, 500);
-        return;
-      }
-    } catch (err) {
-      if (err instanceof NotFoundException) {
-        setLastError("No barcode found");
-        console.log('[SCAN] No barcode found');
-        setDebugInfo("No barcode detected in frame");
-      } else {
-        console.error('[SCAN] Error:', err);
-        const errorMsg = `Scan error: ${err instanceof Error ? err.message : String(err)}`;
-        setLastError(errorMsg);
-        setDebugInfo(`Scan error: ${errorMsg}`);
-      }
-    }
-    
-    // Continue scanning if still active
-    if (scanningRef.current) {
-      scanTimeoutRef.current = setTimeout(() => startScanning(), 200);
-    }
-  };
+
 
   const stopCamera = () => {
     scanningRef.current = false;
@@ -199,47 +182,7 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
     setScanning(false);
   };
 
-  const handleTestScan = () => {
-    console.log('[TEST] Manual scan trigger');
-    setDebugInfo("Manual scan triggered");
-    if (videoRef.current && codeReader.current) {
-      console.log('[TEST] Video state:', {
-        readyState: videoRef.current.readyState,
-        videoWidth: videoRef.current.videoWidth,
-        videoHeight: videoRef.current.videoHeight,
-        paused: videoRef.current.paused
-      });
-      startScanning();
-    }
-  };
 
-  const handleRestartCamera = () => {
-    console.log('[TEST] Restarting camera...');
-    setDebugInfo("Restarting camera...");
-    stopCamera();
-    setTimeout(() => {
-      setScanAttempts(0);
-      setLastError(null);
-      setSuccess(false);
-      setError(null);
-      scanningRef.current = true;
-      startScanning();
-    }, 1000);
-  };
-
-  const handleCameraPermission = async () => {
-    try {
-      setDebugInfo("Requesting camera permission...");
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      stream.getTracks().forEach(track => track.stop());
-      setError(null);
-      setDebugInfo("Camera permission granted");
-      handleRestartCamera();
-    } catch (err) {
-      setError("Camera permission denied. Please allow camera access in your browser settings.");
-      setDebugInfo("Camera permission denied");
-    }
-  };
 
   return (
     <div style={{ padding: 20, textAlign: 'center' }}>
@@ -322,22 +265,7 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
           border: '1px solid #f5c6cb'
         }}>
           <div><strong>Camera Error:</strong> {error}</div>
-          {error.includes('denied') && (
-            <button
-              onClick={handleCameraPermission}
-              style={{
-                marginTop: 10,
-                padding: '8px 16px',
-                background: '#007bff',
-                color: 'white',
-                border: 'none',
-                borderRadius: 4,
-                cursor: 'pointer'
-              }}
-            >
-              Grant Camera Permission
-            </button>
-          )}
+
         </div>
       )}
       
@@ -363,7 +291,7 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
       <div style={{ marginTop: 20, fontSize: 14, color: '#666' }}>
         <p>Position a barcode in front of the camera. Scanning happens automatically.</p>
         <p>Make sure the barcode is well-lit and clearly visible.</p>
-        <p>Or use "Manual Entry" to type the barcode number.</p>
+        <p>Or use &quot;Manual Entry&quot; to type the barcode number.</p>
       </div>
     </div>
   );
