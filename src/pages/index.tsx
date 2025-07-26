@@ -3,8 +3,7 @@ import BarcodeScanner from "@/components/BarcodeScanner";
 import ProductForm from "@/components/ProductForm";
 
 export default function Home() {
-  const [barcode, setBarcode] = useState<string | null>(null);
-  const [product, setProduct] = useState<any>(null);
+  const [product, setProduct] = useState<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
   const [showScanner, setShowScanner] = useState(false);
 
   async function fetchProduct(code: string) {
@@ -21,7 +20,6 @@ export default function Home() {
     } else {
       setProduct({ name: "", brand: "", category: "", barcode: code });
     }
-    setBarcode(code);
     setShowScanner(false);
   }
 

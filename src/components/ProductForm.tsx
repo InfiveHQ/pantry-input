@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { BrowserMultiFormatReader, Result } from "@zxing/library";
+import { BrowserMultiFormatReader } from "@zxing/library";
 
 const LOCATIONS = [
   "Shelf Top Large",
@@ -10,7 +10,7 @@ const LOCATIONS = [
   "Freezer",
 ];
 
-export default function ProductForm({ product }: { product: any }) {
+export default function ProductForm({ product }: { product: any }) { // eslint-disable-line @typescript-eslint/no-explicit-any
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     ...product,
@@ -25,7 +25,7 @@ export default function ProductForm({ product }: { product: any }) {
     image: product?.image || "",
   });
 
-  const handleChange = (e: any) => {
+  const handleChange = (e: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -119,10 +119,10 @@ export default function ProductForm({ product }: { product: any }) {
             const result = await codeReader.decodeFromImage(img);
             console.log('Scan result:', result);
             
-            if (result && result.getText()) {
-              const barcodeValue = result.getText();
-              console.log('Barcode found, updating form...');
-              setFormData((prev: any) => ({ ...prev, barcode: barcodeValue }));
+                         if (result && result.getText()) {
+               const barcodeValue = result.getText();
+               console.log('Barcode found, updating form...');
+               setFormData((prev: any) => ({ ...prev, barcode: barcodeValue })); // eslint-disable-line @typescript-eslint/no-explicit-any
               alert(`Barcode found: ${barcodeValue}`);
               
               // Fetch product details from OpenFoodFacts API
@@ -139,7 +139,7 @@ export default function ProductForm({ product }: { product: any }) {
                     category: data.product.categories,
                     image: data.product.image_url
                   });
-                  setFormData((prev: any) => ({
+                  setFormData((prev: any) => ({ // eslint-disable-line @typescript-eslint/no-explicit-any
                     ...prev,
                     name: data.product.product_name || prev.name,
                     brand: data.product.brands || prev.brand,
@@ -159,9 +159,9 @@ export default function ProductForm({ product }: { product: any }) {
               console.log('No barcode found in image');
               alert("No barcode found in image. Make sure the barcode is clearly visible and not blurry.");
             }
-          } catch (err) {
-            console.error('Scanning error:', err);
-            const errorMsg = (err && (err as any).message) ? (err as any).message : String(err);
+                           } catch (err) {
+                   console.error('Scanning error:', err);
+                   const errorMsg = (err && (err as any).message) ? (err as any).message : String(err); // eslint-disable-line @typescript-eslint/no-explicit-any
             alert(`Failed to scan barcode from image: ${errorMsg}\n\nYou can manually enter the barcode number in the field above.`);
           }
         };
@@ -208,7 +208,7 @@ export default function ProductForm({ product }: { product: any }) {
           category: data.product.categories,
           image: data.product.image_url
         });
-        setFormData((prev: any) => ({
+        setFormData((prev: any) => ({ // eslint-disable-line @typescript-eslint/no-explicit-any
           ...prev,
           name: data.product.product_name || prev.name,
           brand: data.product.brands || prev.brand,
@@ -306,7 +306,7 @@ export default function ProductForm({ product }: { product: any }) {
             style={{ marginTop: 8 }}
           />
           <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
-            Upload a barcode image to auto-fill, or enter barcode manually and click "Lookup Product"
+                         Upload a barcode image to auto-fill, or enter barcode manually and click &quot;Lookup Product&quot;
           </div>
         </div>
         <div style={{ marginBottom: 16 }}>
