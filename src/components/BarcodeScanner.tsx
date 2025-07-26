@@ -1,98 +1,92 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { BrowserMultiFormatReader, NotFoundException } from "@zxing/library";
 
-export default function BarcodeScanner({ onManualEntry }: { 
+export default function BarcodeScanner({ onScan, onManualEntry }: {
+  onScan: (code: string) => void;
   onManualEntry: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [scanning, setScanning] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const codeReader = useRef<BrowserMultiFormatReader | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
-    let stream: MediaStream | null = null;
+    codeReader.current = new BrowserMultiFormatReader();
+    let stopped = false;
 
     const startCamera = async () => {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { 
-            facingMode: 'environment', // Use back camera on mobile
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          } 
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" }
         });
-        
+        streamRef.current = stream;
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
+          videoRef.current.setAttribute('playsinline', 'true');
+          await videoRef.current.play();
         }
-      } catch (error) {
-        console.error('Camera access failed:', error);
-        alert('Camera access denied. Please allow camera permissions and try again.');
+        scanLoop();
+      } catch (err) {
+        setError("Camera access denied or not available.");
       }
+    };
+
+    const scanLoop = async () => {
+      if (!videoRef.current || !codeReader.current) return;
+      try {
+        const result = await codeReader.current.decodeFromVideoElement(videoRef.current);
+        if (result && result.getText()) {
+          setScanning(false);
+          stopCamera();
+          onScan(result.getText());
+        }
+      } catch (err) {
+        if (err instanceof NotFoundException) {
+          // No barcode found, keep scanning
+          if (!stopped) scanLoop();
+        } else {
+          setError("Scanning error: " + (err && (err as any).message ? (err as any).message : String(err)));
+        }
+      }
+    };
+
+    const stopCamera = () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+      if (codeReader.current) {
+        codeReader.current.reset();
+      }
+      stopped = true;
     };
 
     startCamera();
-
     return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-      }
+      stopCamera();
     };
+    // eslint-disable-next-line
   }, []);
-
-  const captureAndScan = () => {
-    if (!videoRef.current || !canvasRef.current) return;
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
-
-    if (!context) return;
-
-    // Set canvas size to match video
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-
-    // Draw video frame to canvas
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    // For now, we'll just show a message that scanning is in progress
-    // In a real implementation, you'd use a barcode detection library here
-    alert('Barcode scanning is in progress. For now, please use manual entry.');
-  };
 
   return (
     <div style={{ padding: 20, textAlign: 'center' }}>
       <h2>Barcode Scanner</h2>
-      
       <div style={{ marginBottom: 20 }}>
         <video
           ref={videoRef}
           autoPlay
           playsInline
-          style={{ 
-            width: '100%', 
-            maxWidth: 400, 
+          style={{
+            width: '100%',
+            maxWidth: 400,
             border: '2px solid #ccc',
             borderRadius: 8
           }}
         />
-        <canvas ref={canvasRef} style={{ display: 'none' }} />
       </div>
-
+      {error && <div style={{ color: 'red', marginBottom: 10 }}>{error}</div>}
       <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-        <button
-          onClick={captureAndScan}
-          style={{
-            padding: '12px 24px',
-            background: '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: 4,
-            cursor: 'pointer',
-            fontSize: 16
-          }}
-        >
-          Scan Barcode
-        </button>
-        
         <button
           onClick={onManualEntry}
           style={{
@@ -108,9 +102,8 @@ export default function BarcodeScanner({ onManualEntry }: {
           Manual Entry
         </button>
       </div>
-
       <div style={{ marginTop: 20, fontSize: 14, color: '#666' }}>
-        <p>Point the camera at a barcode and tap &quot;Scan Barcode&quot;</p>
+        <p>Point the camera at a barcode. Scanning will happen automatically.</p>
         <p>Or use &quot;Manual Entry&quot; to type the barcode number</p>
       </div>
     </div>

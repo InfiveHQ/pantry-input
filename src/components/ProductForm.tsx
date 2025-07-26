@@ -55,7 +55,7 @@ export default function ProductForm({ product }: { product: any }) { // eslint-d
       console.log('Supabase response:', response, data);
 
       if (!response.ok) {
-        alert(`Error adding to Supabase: ${data.message || response.statusText}`);
+        alert(`Error adding to Supabase: ${data.message || response.statusText} (status: ${response.status})\nResponse: ${JSON.stringify(data)}`);
         return;
       }
 
