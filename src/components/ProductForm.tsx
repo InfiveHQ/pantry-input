@@ -149,15 +149,60 @@ export default function ProductForm({ barcode, productData }: {
 
   const startCamera = async () => {
     console.log('Starting camera...');
+    
+    // First, clean up any existing camera streams
+    if (videoRef.current && videoRef.current.srcObject) {
+      const existingStream = videoRef.current.srcObject as MediaStream;
+      existingStream.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    
     try {
       console.log('Requesting camera access...');
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          facingMode: 'environment',
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        } 
-      });
+      
+      // Try different camera constraints with fallbacks
+      const constraints = [
+        // Primary: environment-facing camera with specific settings
+        {
+          video: { 
+            facingMode: 'environment',
+            width: { ideal: 1280, min: 320, max: 1920 },
+            height: { ideal: 720, min: 240, max: 1080 }
+          } 
+        },
+        // Fallback 1: simpler environment-facing
+        {
+          video: { facingMode: 'environment' }
+        },
+        // Fallback 2: any camera
+        {
+          video: true
+        }
+      ];
+      
+      let stream: MediaStream | null = null;
+      let lastError: Error | null = null;
+      
+      // Try each constraint until one works
+      for (let i = 0; i < constraints.length; i++) {
+        try {
+          console.log(`[CAMERA] Trying constraint ${i + 1}:`, constraints[i]);
+          stream = await navigator.mediaDevices.getUserMedia(constraints[i]);
+          console.log(`[CAMERA] Success with constraint ${i + 1}`);
+          break;
+        } catch (err) {
+          lastError = err as Error;
+          console.log(`[CAMERA] Failed with constraint ${i + 1}:`, err);
+          if (i === constraints.length - 1) {
+            throw lastError;
+          }
+        }
+      }
+      
+      if (!stream) {
+        throw new Error('Failed to get camera stream with all constraints');
+      }
+      
       console.log('Camera stream obtained:', stream);
       
       // Set showCamera to true first so the video element is rendered
@@ -173,16 +218,20 @@ export default function ProductForm({ barcode, productData }: {
         // Wait for video to be ready before playing
         await new Promise((resolve, reject) => {
           if (videoRef.current) {
-            videoRef.current.onloadedmetadata = () => {
+            const timeout = setTimeout(() => {
+              reject(new Error('Video load timeout'));
+            }, 10000);
+            
+            videoRef.current!.onloadedmetadata = () => {
+              clearTimeout(timeout);
               console.log('Video metadata loaded');
               resolve(true);
             };
-            videoRef.current.onerror = (error) => {
-              console.error('Video error:', error);
-              reject(error);
+            
+            videoRef.current!.onerror = (error) => {
+              clearTimeout(timeout);
+              reject(new Error(`Video error: ${error}`));
             };
-            // Set a timeout in case the video doesn't load
-            setTimeout(() => reject(new Error('Video load timeout')), 5000);
           } else {
             reject(new Error('Video ref is null'));
           }
@@ -364,7 +413,11 @@ export default function ProductForm({ barcode, productData }: {
                   borderRadius: 8,
                   marginBottom: 10,
                   objectFit: 'cover'
-                }} 
+                }}
+                onError={(e) => {
+                  console.error('Image failed to load:', capturedImage);
+                  e.currentTarget.style.display = 'none';
+                }}
               />
               <button
                 type="button"
@@ -397,7 +450,11 @@ export default function ProductForm({ barcode, productData }: {
                   borderRadius: 8,
                   marginBottom: 10,
                   objectFit: 'cover'
-                }} 
+                }}
+                onError={(e) => {
+                  console.error('Image failed to load:', formData.image);
+                  e.currentTarget.style.display = 'none';
+                }}
               />
               <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
                 <button
@@ -496,15 +553,17 @@ export default function ProductForm({ barcode, productData }: {
                 >
                   📸 Capture
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const stream = videoRef.current?.srcObject as MediaStream;
-                    if (stream) {
-                      stream.getTracks().forEach(track => track.stop());
-                    }
-                    setShowCamera(false);
-                  }}
+                                 <button
+                   type="button"
+                   onClick={() => {
+                     // Clean up camera stream
+                     if (videoRef.current && videoRef.current.srcObject) {
+                       const stream = videoRef.current.srcObject as MediaStream;
+                       stream.getTracks().forEach(track => track.stop());
+                       videoRef.current.srcObject = null;
+                     }
+                     setShowCamera(false);
+                   }}
                   style={{
                     padding: '10px 20px',
                     background: '#6c757d',
