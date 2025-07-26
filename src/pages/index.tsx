@@ -32,9 +32,6 @@ export default function Home() {
   if (showScanner) {
     return (
       <BarcodeScanner
-        onScan={(code) => {
-          fetchProduct(code);
-        }}
         onManualEntry={() => setShowScanner(false)}
       />
     );

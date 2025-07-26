@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 
-export default function BarcodeScanner({ onScan, onManualEntry }: { 
-  onScan: (code: string) => void;
+export default function BarcodeScanner({ onManualEntry }: { 
   onManualEntry: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -111,8 +110,8 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
       </div>
 
       <div style={{ marginTop: 20, fontSize: 14, color: '#666' }}>
-        <p>Point the camera at a barcode and tap "Scan Barcode"</p>
-        <p>Or use "Manual Entry" to type the barcode number</p>
+        <p>Point the camera at a barcode and tap &quot;Scan Barcode&quot;</p>
+        <p>Or use &quot;Manual Entry&quot; to type the barcode number</p>
       </div>
     </div>
   );
