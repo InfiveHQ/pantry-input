@@ -6,7 +6,6 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
   onManualEntry: () => void;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [scanning, setScanning] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const codeReader = useRef<BrowserMultiFormatReader | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -27,7 +26,7 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
           await videoRef.current.play();
         }
         scanLoop();
-      } catch (err) {
+      } catch (e) {
         setError("Camera access denied or not available.");
       }
     };
@@ -37,16 +36,14 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
       try {
         const result = await codeReader.current.decodeFromVideoElement(videoRef.current);
         if (result && result.getText()) {
-          setScanning(false);
           stopCamera();
           onScan(result.getText());
         }
-      } catch (err) {
-        if (err instanceof NotFoundException) {
-          // No barcode found, keep scanning
+      } catch (e) {
+        if (e instanceof NotFoundException) {
           if (!stopped) scanLoop();
         } else {
-          setError("Scanning error: " + (err && (err as any).message ? (err as any).message : String(err)));
+          setError("Scanning error: " + (e && (e as any).message ? (e as any).message : String(e))); // eslint-disable-line @typescript-eslint/no-explicit-any
         }
       }
     };
