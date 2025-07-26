@@ -31,7 +31,7 @@ export default async function handler(req: any, res: any) { // eslint-disable-li
     } = req.body;
 
     // Process tags from comma-separated string to multi-select array
-    const tagsArray = tags ? tags.split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag) : [];
+    // const tagsArray = tags ? tags.split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag) : [];
 
     // Handle image - only send URLs, not base64
     const imageProperty = image && !image.startsWith('data:') ? {

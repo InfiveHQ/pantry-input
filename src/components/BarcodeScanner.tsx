@@ -44,12 +44,12 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
         if (videoInputs.length > 0 && !selectedCamera) {
           setSelectedCamera(videoInputs[0].deviceId);
         }
-      } catch (e) {
+      } catch {
         setError('Could not list cameras');
       }
     }
     getCameras();
-  }, []);
+  }, [selectedCamera]);
 
   useEffect(() => {
     codeReader.current = new BrowserMultiFormatReader();
@@ -374,7 +374,7 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
       }}>
         <div style={{ fontWeight: 'bold', marginBottom: 10 }}>Manual Entry</div>
         <div style={{ fontSize: 14, marginBottom: 10 }}>
-          If the scanner isn't working, you can manually enter the barcode number:
+          If the scanner isn&apos;t working, you can manually enter the barcode number:
         </div>
         <button
           onClick={onManualEntry}

@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from "react";
-import { BrowserMultiFormatReader } from "@zxing/library";
 
 const LOCATION_OPTIONS = [
   "Shelf Top Small",
@@ -12,9 +11,8 @@ const LOCATION_OPTIONS = [
   "Unknown"
 ];
 
-export default function ProductForm({ barcode, onBarcodeScanned }: {
+export default function ProductForm({ barcode }: {
   barcode?: string;
-  onBarcodeScanned?: (code: string) => void;
 }) {
   const [formData, setFormData] = useState({
     name: "",
@@ -43,7 +41,7 @@ export default function ProductForm({ barcode, onBarcodeScanned }: {
       setFormData(prev => ({ ...prev, barcode }));
       fetchProductDetails(barcode);
     }
-  }, [barcode]);
+  }, [barcode, formData.barcode]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
