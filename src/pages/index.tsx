@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Link from "next/link";
 import ProductForm from "../components/ProductForm";
 import BarcodeScanner from "../components/BarcodeScanner";
 
@@ -59,7 +60,19 @@ export default function Home() {
         ) : (
           <div>
             <div style={{ textAlign: 'center', marginBottom: 30 }}>
-              <h1 style={{ color: '#333', marginBottom: 10 }}>Pantry Input</h1>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <h1 style={{ color: '#333', margin: 0 }}>Pantry Input</h1>
+                <Link href="/inventory" style={{
+                  padding: '10px 20px',
+                  background: '#17a2b8',
+                  color: 'white',
+                  textDecoration: 'none',
+                  borderRadius: 4,
+                  fontWeight: 'bold'
+                }}>
+                  📋 View Inventory
+                </Link>
+              </div>
               <p style={{ color: '#666', marginBottom: 20 }}>
                 Add items to your pantry inventory
               </p>
