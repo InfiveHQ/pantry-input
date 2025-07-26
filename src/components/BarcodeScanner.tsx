@@ -12,8 +12,25 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
   const [scanAttempts, setScanAttempts] = useState(0);
   const [lastError, setLastError] = useState<string | null>(null);
   const [videoDimensions, setVideoDimensions] = useState<string>("");
+  const [frameStyle, setFrameStyle] = useState({ width: '80%', height: '25%' });
   const codeReader = useRef<BrowserMultiFormatReader | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  // Responsive frame style for portrait/landscape
+  useEffect(() => {
+    function updateFrameStyle() {
+      if (window.innerWidth < window.innerHeight) {
+        // Portrait: wide, short
+        setFrameStyle({ width: '80%', height: '25%' });
+      } else {
+        // Landscape: still wide, but a bit taller
+        setFrameStyle({ width: '60%', height: '40%' });
+      }
+    }
+    updateFrameStyle();
+    window.addEventListener('resize', updateFrameStyle);
+    return () => window.removeEventListener('resize', updateFrameStyle);
+  }, []);
 
   useEffect(() => {
     codeReader.current = new BrowserMultiFormatReader();
@@ -119,75 +136,51 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          width: '80%',
-          height: '60%',
-          border: '2px solid #00ff00',
+          ...frameStyle,
+          border: '3px solid #00ff00',
           borderRadius: 8,
           pointerEvents: 'none',
-          zIndex: 10
+          zIndex: 10,
+          boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.3)'
         }}>
           {/* Corner indicators */}
           <div style={{
             position: 'absolute',
-            top: -2,
-            left: -2,
-            width: 20,
-            height: 20,
-            borderTop: '3px solid #00ff00',
-            borderLeft: '3px solid #00ff00'
+            top: -3,
+            left: -3,
+            width: 25,
+            height: 25,
+            borderTop: '4px solid #00ff00',
+            borderLeft: '4px solid #00ff00'
           }}></div>
           <div style={{
             position: 'absolute',
-            top: -2,
-            right: -2,
-            width: 20,
-            height: 20,
-            borderTop: '3px solid #00ff00',
-            borderRight: '3px solid #00ff00'
+            top: -3,
+            right: -3,
+            width: 25,
+            height: 25,
+            borderTop: '4px solid #00ff00',
+            borderRight: '4px solid #00ff00'
           }}></div>
           <div style={{
             position: 'absolute',
-            bottom: -2,
-            left: -2,
-            width: 20,
-            height: 20,
-            borderBottom: '3px solid #00ff00',
-            borderLeft: '3px solid #00ff00'
+            bottom: -3,
+            left: -3,
+            width: 25,
+            height: 25,
+            borderBottom: '4px solid #00ff00',
+            borderLeft: '4px solid #00ff00'
           }}></div>
           <div style={{
             position: 'absolute',
-            bottom: -2,
-            right: -2,
-            width: 20,
-            height: 20,
-            borderBottom: '3px solid #00ff00',
-            borderRight: '3px solid #00ff00'
+            bottom: -3,
+            right: -3,
+            width: 25,
+            height: 25,
+            borderBottom: '4px solid #00ff00',
+            borderRight: '4px solid #00ff00'
           }}></div>
         </div>
-        
-        {/* Scanning line animation */}
-        {scanning && (
-          <div style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: '80%',
-            height: '2px',
-            background: 'linear-gradient(90deg, transparent, #00ff00, transparent)',
-            animation: 'scan 2s linear infinite',
-            pointerEvents: 'none',
-            zIndex: 11
-          }}></div>
-        )}
-        
-        <style jsx>{`
-          @keyframes scan {
-            0% { transform: translate(-50%, -50%) translateY(-30%); }
-            50% { transform: translate(-50%, -50%) translateY(0%); }
-            100% { transform: translate(-50%, -50%) translateY(30%); }
-          }
-        `}</style>
       </div>
       
       {/* Debug Info */}
@@ -218,7 +211,7 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
         fontSize: 12
       }}>
         <div><strong>Tips:</strong></div>
-        <div>• Position barcode within the green frame</div>
+        <div>• Position barcode within the green rectangle</div>
         <div>• Hold phone steady, 6-12 inches from barcode</div>
         <div>• Ensure good lighting on the barcode</div>
         <div>• Works best with EAN-13, UPC, Code 128 barcodes</div>
@@ -241,7 +234,7 @@ export default function BarcodeScanner({ onScan, onManualEntry }: {
         </button>
       </div>
       <div style={{ marginTop: 20, fontSize: 14, color: '#666' }}>
-        <p>Position the barcode within the green frame. Scanning will happen automatically.</p>
+        <p>Position the barcode within the green rectangle. Scanning will happen automatically.</p>
         <p>Or use &quot;Manual Entry&quot; to type the barcode number</p>
       </div>
     </div>
