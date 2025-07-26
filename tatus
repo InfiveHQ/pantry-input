@@ -1,0 +1,5 @@
+[33mc50e667[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m Fix build errors: add null checking to error page and fix useEffect dependencies
+[33mef2739f[m Fix ESLint errors for deployment - Remove unused debug variables and functions - Add ESLint disable comments for any types - Fix React Hook dependencies - Escape quotes in JSX
+[33m9cb7ac2[m Fix barcode scanner auto-population and clean up UI - Move product lookup to main page for better reliability - Pass product data directly to ProductForm - Remove debug buttons (Test Scan, Restart Camera) - Simplify scanner interface - Add loading states and better error handling
+[33mf856f20[m Update BarcodeScanner component and add git helper file
+[33m6bb0d68[m Fix TypeScript error - Remove onBarcodeScanned prop from ProductForm
