@@ -14,14 +14,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { user_id, email, first_name, last_name } = req.body;
 
-    console.log('Create-profile API called with:', { user_id, email, first_name, last_name });
+    console.log('Test create-profile called with:', { user_id, email, first_name, last_name });
 
     if (!user_id || !email) {
-      console.error('Missing required fields:', { user_id, email });
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Create profile
+    // Test the exact same logic as the real create-profile API
     const { data, error } = await supabase
       .from('profiles')
       .insert({
@@ -37,12 +36,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (error) {
       console.error('Profile creation error:', error);
-      return res.status(500).json({ error: 'Failed to create profile' });
+      return res.status(500).json({ 
+        error: 'Failed to create profile',
+        details: error.message,
+        code: error.code
+      });
     }
 
-    return res.status(200).json({ success: true, profile: data });
+    return res.status(200).json({ 
+      success: true, 
+      profile: data,
+      message: 'Test profile created successfully'
+    });
   } catch (error) {
-    console.error('Create profile error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    console.error('Test create profile error:', error);
+    return res.status(500).json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 } 
