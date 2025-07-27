@@ -24,7 +24,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   createHousehold: (name: string) => Promise<Household>;
   getUserHouseholds: () => Promise<Household[]>;
-  inviteMember: (householdId: string, email: string) => Promise<any>;
+  inviteMember: (householdId: string, email: string) => Promise<{ message: string; status: string; email?: string; invitation_url?: string }>;
   getHouseholdMembers: (householdId: string) => Promise<HouseholdMember[]>;
 }
 
@@ -122,7 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Don't fail signup if profile creation fails
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Signup failed:', error);
       throw error;
     }
@@ -199,7 +199,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const inviteMember = async (householdId: string, email: string): Promise<any> => {
+  const inviteMember = async (householdId: string, email: string): Promise<{ message: string; status: string; email?: string; invitation_url?: string }> => {
     if (!user) throw new Error('User not authenticated');
     
     try {
@@ -222,7 +222,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       return response.json();
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Invite member failed:', error);
       throw error;
     }

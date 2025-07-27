@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { useAuth } from '../contexts/AuthContext';
@@ -58,6 +58,19 @@ export default function Households() {
   const [showInvitations, setShowInvitations] = useState<string | null>(null);
   const [error, setError] = useState('');
 
+  const fetchHouseholds = useCallback(async () => {
+    try {
+      setError('');
+      const data = await getUserHouseholds();
+      setHouseholds(data);
+    } catch (error: unknown) {
+      console.error('Error fetching households:', error);
+      setError(error instanceof Error ? error.message : 'Failed to fetch households');
+    } finally {
+      setLoading(false);
+    }
+  }, [getUserHouseholds]);
+
   useEffect(() => {
     if (!authLoading && !user) {
       router.push('/login');
@@ -68,20 +81,7 @@ export default function Households() {
     if (user) {
       fetchHouseholds();
     }
-  }, [user]);
-
-  const fetchHouseholds = async () => {
-    try {
-      setError('');
-      const data = await getUserHouseholds();
-      setHouseholds(data);
-    } catch (error: any) {
-      console.error('Error fetching households:', error);
-      setError(error.message || 'Failed to fetch households');
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [user, fetchHouseholds]);
 
   const handleCreateHousehold = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,9 +94,9 @@ export default function Households() {
       setShowCreateForm(false);
       fetchHouseholds();
       alert('Household created successfully!');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating household:', error);
-      setError(error.message || 'Error creating household');
+      setError(error instanceof Error ? error.message : 'Error creating household');
     }
   };
 
@@ -119,9 +119,9 @@ export default function Households() {
        } else {
          alert('Invitation sent!');
        }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error inviting member:', error);
-      setError(error.message || 'Error sending invitation');
+      setError(error instanceof Error ? error.message : 'Error sending invitation');
     }
   };
 
@@ -130,9 +130,9 @@ export default function Households() {
       setError('');
       const data = await getHouseholdMembers(householdId);
       setMembers(data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching members:', error);
-      setError(error.message || 'Failed to fetch members');
+      setError(error instanceof Error ? error.message : 'Failed to fetch members');
     }
   };
 
@@ -146,9 +146,9 @@ export default function Households() {
       } else {
         throw new Error('Failed to fetch invitations');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching invitations:', error);
-      setError(error.message || 'Failed to fetch invitations');
+      setError(error instanceof Error ? error.message : 'Failed to fetch invitations');
     }
   };
 
@@ -168,9 +168,9 @@ export default function Households() {
       } else {
         throw new Error('Failed to cancel invitation');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error cancelling invitation:', error);
-      setError(error.message || 'Failed to cancel invitation');
+      setError(error instanceof Error ? error.message : 'Failed to cancel invitation');
     }
   };
 
@@ -477,11 +477,7 @@ export default function Households() {
                           }}>
                             <div>
                               <span style={{ fontWeight: 'bold' }}>
-                                {member.profiles?.first_name && member.profiles?.last_name 
-                                  ? `${member.profiles.first_name} ${member.profiles.last_name}`
-                                  : member.profiles?.first_name 
-                                  ? member.profiles.first_name
-                                  : member.profiles?.email || 'Unknown User'}
+                                {member.profiles?.full_name || member.profiles?.email || 'Unknown User'}
                               </span>
                               <span style={{
                                 marginLeft: 8,

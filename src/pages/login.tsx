@@ -29,21 +29,23 @@ export default function Login() {
         await signIn(email, password);
         router.push('/');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Auth error:', error);
       
       // Provide more user-friendly error messages
-      let errorMessage = error.message;
-      if (error.message.includes('Invalid login credentials')) {
-        errorMessage = 'Invalid email or password. Please try again.';
-      } else if (error.message.includes('Email not confirmed')) {
-        errorMessage = 'Please check your email and click the confirmation link before signing in.';
-      } else if (error.message.includes('User already registered')) {
-        errorMessage = 'An account with this email already exists. Please sign in instead.';
-      } else if (error.message.includes('Password should be at least')) {
-        errorMessage = 'Password must be at least 6 characters long.';
-      } else if (error.message.includes('Invalid email')) {
-        errorMessage = 'Please enter a valid email address.';
+      let errorMessage = 'An error occurred. Please try again.';
+      if (error instanceof Error) {
+        if (error.message.includes('Invalid login credentials')) {
+          errorMessage = 'Invalid email or password. Please try again.';
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = 'Please check your email and click the confirmation link before signing in.';
+        } else if (error.message.includes('User already registered')) {
+          errorMessage = 'An account with this email already exists. Please sign in instead.';
+        } else if (error.message.includes('Password should be at least')) {
+          errorMessage = 'Password must be at least 6 characters long.';
+        } else if (error.message.includes('Invalid email')) {
+          errorMessage = 'Please enter a valid email address.';
+        }
       }
       
       setError(errorMessage);
@@ -280,7 +282,7 @@ export default function Login() {
             fontSize: 12,
             color: '#856404'
           }}>
-            <strong>Note:</strong> After creating your account, you'll receive a confirmation email. 
+            <strong>Note:</strong> After creating your account, you&apos;ll receive a confirmation email. 
             Please click the link in the email to activate your account before signing in.
           </div>
         )}

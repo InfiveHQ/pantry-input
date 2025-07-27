@@ -9,7 +9,7 @@ const supabase = createClient(
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     // Test database connection
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('households')
       .select('count')
       .limit(1);
@@ -24,9 +24,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Test if tables exist
-    const { data: tableTest, error: tableError } = await supabase
-      .rpc('get_table_info', { table_name: 'households' })
-      .catch(() => ({ data: null, error: { message: 'Table does not exist' } }));
+    let tableError = null;
+    try {
+      const { error } = await supabase
+        .rpc('get_table_info', { table_name: 'households' });
+      tableError = error;
+    } catch {
+      tableError = { message: 'Table does not exist' };
+    }
 
     res.status(200).json({
       message: 'API is working',

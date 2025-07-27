@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { useAuth } from '../contexts/AuthContext';
 
 interface Household {
@@ -14,13 +15,7 @@ export default function HouseholdSelector() {
   const [selectedHousehold, setSelectedHousehold] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (user) {
-      fetchHouseholds();
-    }
-  }, [user]);
-
-  const fetchHouseholds = async () => {
+  const fetchHouseholds = useCallback(async () => {
     try {
       const data = await getUserHouseholds();
       setHouseholds(data);
@@ -32,7 +27,13 @@ export default function HouseholdSelector() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [getUserHouseholds, selectedHousehold]);
+
+  useEffect(() => {
+    if (user) {
+      fetchHouseholds();
+    }
+  }, [user, fetchHouseholds]);
 
   if (loading) {
     return (
@@ -51,7 +52,7 @@ export default function HouseholdSelector() {
         borderRadius: 4,
         color: '#856404'
       }}>
-        No households yet. <a href="/households" style={{ color: '#007bff' }}>Create one</a>
+        No households yet. <Link href="/households" style={{ color: '#007bff' }}>Create one</Link>
       </div>
     );
   }
