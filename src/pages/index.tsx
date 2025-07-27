@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/router";
+import { useAuth } from "../contexts/AuthContext";
 import ProductForm from "../components/ProductForm";
 import BarcodeScanner from "../components/BarcodeScanner";
 
@@ -7,6 +9,35 @@ export default function Home() {
   const [showScanner, setShowScanner] = useState(false);
   const [scannedBarcode, setScannedBarcode] = useState<string>("");
   const [productData, setProductData] = useState<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
+  const { user, loading, signOut } = useAuth();
+  const router = useRouter();
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login');
+    }
+  }, [user, loading, router]);
+
+  // Show loading while checking authentication
+  if (loading) {
+    return (
+      <div style={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        background: '#f8f9fa'
+      }}>
+        <div>Loading...</div>
+      </div>
+    );
+  }
+
+  // Don't render anything if not authenticated (will redirect)
+  if (!user) {
+    return null;
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleBarcodeScanned = (barcode: string) => {
@@ -49,6 +80,15 @@ export default function Home() {
     }
   };
 
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      router.push('/login');
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
+  };
+
   return (
     <div style={{ minHeight: '100vh', background: '#f8f9fa' }}>
       <div style={{ padding: 20 }}>
@@ -62,19 +102,45 @@ export default function Home() {
             <div style={{ textAlign: 'center', marginBottom: 30 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <h1 style={{ color: '#333', margin: 0 }}>Pantry Input</h1>
-                <Link href="/inventory" style={{
-                  padding: '10px 20px',
-                  background: '#17a2b8',
-                  color: 'white',
-                  textDecoration: 'none',
-                  borderRadius: 4,
-                  fontWeight: 'bold'
-                }}>
-                  📋 View Inventory
-                </Link>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <Link href="/inventory" style={{
+                    padding: '10px 20px',
+                    background: '#17a2b8',
+                    color: 'white',
+                    textDecoration: 'none',
+                    borderRadius: 4,
+                    fontWeight: 'bold'
+                  }}>
+                    📋 View Inventory
+                  </Link>
+                  <Link href="/households" style={{
+                    padding: '10px 20px',
+                    background: '#28a745',
+                    color: 'white',
+                    textDecoration: 'none',
+                    borderRadius: 4,
+                    fontWeight: 'bold'
+                  }}>
+                    🏠 Households
+                  </Link>
+                  <button
+                    onClick={handleSignOut}
+                    style={{
+                      padding: '10px 20px',
+                      background: '#dc3545',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: 4,
+                      fontWeight: 'bold',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Sign Out
+                  </button>
+                </div>
               </div>
               <p style={{ color: '#666', marginBottom: 20 }}>
-                Add items to your pantry inventory
+                Welcome, {user.email}! Add items to your pantry inventory
               </p>
               <button
                 onClick={() => setShowScanner(true)}
