@@ -3,3 +3,8 @@
 [33m9cb7ac2[m Fix barcode scanner auto-population and clean up UI - Move product lookup to main page for better reliability - Pass product data directly to ProductForm - Remove debug buttons (Test Scan, Restart Camera) - Simplify scanner interface - Add loading states and better error handling
 [33mf856f20[m Update BarcodeScanner component and add git helper file
 [33m6bb0d68[m Fix TypeScript error - Remove onBarcodeScanned prop from ProductForm
+[33m36fd31a[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m Fix camera modal: add capture button and mobile safe area padding
+[33mcce6b57[m Add camera selection and improve back camera detection
+[33m4393d3f[m Fix camera issues and add image domain configuration
+[33ma46402f[m Fix TypeScript error
+[33m8cccb4d[m Fix ESLint errors
