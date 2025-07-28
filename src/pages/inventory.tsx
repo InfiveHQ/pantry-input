@@ -35,6 +35,7 @@ export default function Inventory() {
   const [showUsedItems, setShowUsedItems] = useState(false);
   const [expiryFilter, setExpiryFilter] = useState(""); // "expired", "expiring-soon", or ""
   const [editingItem, setEditingItem] = useState<PantryItem | null>(null);
+  const [locationTabsExpanded, setLocationTabsExpanded] = useState(false);
 
   const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -360,188 +361,201 @@ export default function Inventory() {
         {/* Compact Stats Cards */}
         <div style={{ 
           display: 'flex', 
-          gap: 10, 
-          marginBottom: 15,
+          gap: 6, 
+          marginBottom: 12,
           flexWrap: 'wrap'
         }}>
           <div 
             onClick={() => setExpiryFilter("")}
             style={{ 
               background: expiryFilter === "" ? 'var(--stats-card-active)' : 'var(--stats-card-bg)',
-              padding: '8px 12px', 
+              padding: '6px 10px', 
               borderRadius: 4, 
               cursor: 'pointer',
               border: expiryFilter === "" ? '2px solid var(--primary)' : '1px solid var(--border)',
               transition: 'all 0.2s',
               display: 'flex',
               alignItems: 'center',
-              gap: 8
+              gap: 6
             }}
           >
-            <span style={{ fontSize: 16, fontWeight: 'bold', color: 'var(--primary)' }}>{filteredAndSortedItems.length}</span>
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>All Items</span>
+            <span style={{ fontSize: 14, fontWeight: 'bold', color: 'var(--primary)' }}>{filteredAndSortedItems.length}</span>
+            <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>All Items</span>
           </div>
           <div 
             onClick={() => setExpiryFilter("expiring-week")}
             style={{ 
               background: expiryFilter === "expiring-week" ? 'var(--expiring-week-bg)' : 'var(--stats-card-bg)',
-              padding: '8px 12px', 
+              padding: '6px 10px', 
               borderRadius: 4, 
               cursor: 'pointer',
               border: expiryFilter === "expiring-week" ? '2px solid var(--expiring-week-border)' : '1px solid var(--border)',
               transition: 'all 0.2s',
               display: 'flex',
               alignItems: 'center',
-              gap: 8
+              gap: 6
             }}
           >
-            <span style={{ fontSize: 16, fontWeight: 'bold', color: 'var(--expiring-week-border)' }}>
+            <span style={{ fontSize: 14, fontWeight: 'bold', color: 'var(--expiring-week-border)' }}>
               {items.filter(item => 
                 getExpiryStatus(item.expiry) === 'expiring-week' || 
                 getExpiryStatus(item.expiry) === 'expiring-3-days' || 
                 getExpiryStatus(item.expiry) === 'expiring-today'
               ).length}
             </span>
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Week</span>
+            <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>Week</span>
           </div>
           <div 
             onClick={() => setExpiryFilter("expiring-3-days")}
             style={{ 
               background: expiryFilter === "expiring-3-days" ? 'var(--expiring-3-days-bg)' : 'var(--stats-card-bg)',
-              padding: '8px 12px', 
+              padding: '6px 10px', 
               borderRadius: 4, 
               cursor: 'pointer',
               border: expiryFilter === "expiring-3-days" ? '2px solid var(--expiring-3-days-border)' : '1px solid var(--border)',
               transition: 'all 0.2s',
               display: 'flex',
               alignItems: 'center',
-              gap: 8
+              gap: 6
             }}
           >
-            <span style={{ fontSize: 16, fontWeight: 'bold', color: 'var(--expiring-3-days-border)' }}>
+            <span style={{ fontSize: 14, fontWeight: 'bold', color: 'var(--expiring-3-days-border)' }}>
               {items.filter(item => 
                 getExpiryStatus(item.expiry) === 'expiring-3-days' || 
                 getExpiryStatus(item.expiry) === 'expiring-today'
               ).length}
             </span>
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>3 Days</span>
+            <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>3 Days</span>
           </div>
           <div 
             onClick={() => setExpiryFilter("expiring-today")}
             style={{ 
               background: expiryFilter === "expiring-today" ? 'var(--expiring-today-bg)' : 'var(--stats-card-bg)',
-              padding: '8px 12px', 
+              padding: '6px 10px', 
               borderRadius: 4, 
               cursor: 'pointer',
               border: expiryFilter === "expiring-today" ? '2px solid var(--expiring-today-border)' : '1px solid var(--border)',
               transition: 'all 0.2s',
               display: 'flex',
               alignItems: 'center',
-              gap: 8
+              gap: 6
             }}
           >
-            <span style={{ fontSize: 16, fontWeight: 'bold', color: 'var(--expiring-today-border)' }}>
+            <span style={{ fontSize: 14, fontWeight: 'bold', color: 'var(--expiring-today-border)' }}>
               {items.filter(item => getExpiryStatus(item.expiry) === 'expiring-today').length}
             </span>
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Today</span>
+            <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>Today</span>
           </div>
           <div 
             onClick={() => setExpiryFilter("expired")}
             style={{ 
               background: expiryFilter === "expired" ? 'var(--expired-bg)' : 'var(--stats-card-bg)',
-              padding: '8px 12px', 
+              padding: '6px 10px', 
               borderRadius: 4, 
               cursor: 'pointer',
               border: expiryFilter === "expired" ? '2px solid var(--expired-border)' : '1px solid var(--border)',
               transition: 'all 0.2s',
               display: 'flex',
               alignItems: 'center',
-              gap: 8
+              gap: 6
             }}
           >
-            <span style={{ fontSize: 16, fontWeight: 'bold', color: 'var(--expired-border)' }}>
+            <span style={{ fontSize: 14, fontWeight: 'bold', color: 'var(--expired-border)' }}>
               {items.filter(item => getExpiryStatus(item.expiry) === 'expired').length}
             </span>
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Expired</span>
+            <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>Expired</span>
           </div>
           <div 
             onClick={() => setExpiryFilter("finished")}
             style={{ 
               background: expiryFilter === "finished" ? 'var(--finished-bg)' : 'var(--stats-card-bg)',
-              padding: '8px 12px', 
+              padding: '6px 10px', 
               borderRadius: 4, 
               cursor: 'pointer',
               border: expiryFilter === "finished" ? '2px solid var(--finished-border)' : '1px solid var(--border)',
               transition: 'all 0.2s',
               display: 'flex',
               alignItems: 'center',
-              gap: 8
+              gap: 6
             }}
           >
-            <span style={{ fontSize: 16, fontWeight: 'bold', color: 'var(--finished-border)' }}>
+            <span style={{ fontSize: 14, fontWeight: 'bold', color: 'var(--finished-border)' }}>
               {items.filter(item => item.completion === 0).length}
             </span>
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Finished</span>
+            <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>Finished</span>
           </div>
         </div>
 
-        {/* Location Tabs */}
-        <div style={{ 
-          display: 'flex', 
-          gap: 5, 
-          flexWrap: 'wrap',
-          marginBottom: 20
-        }}>
+        {/* Collapsible Location Tabs */}
+        <div style={{ marginBottom: 15 }}>
           <div 
-            onClick={() => setLocationFilter("")}
+            onClick={() => setLocationTabsExpanded(!locationTabsExpanded)}
             style={{ 
-              background: locationFilter === "" ? 'var(--primary)' : 'var(--stats-card-bg)',
-              color: locationFilter === "" ? 'white' : 'var(--text-secondary)',
-              padding: '8px 16px', 
-              borderRadius: 20, 
+              background: 'var(--stats-card-bg)',
+              color: 'var(--text-primary)',
+              padding: '8px 12px', 
+              borderRadius: 4, 
               cursor: 'pointer',
               fontSize: 14,
-              fontWeight: locationFilter === "" ? 'bold' : 'normal',
-              transition: 'all 0.2s',
-              border: locationFilter === "" ? 'none' : `1px solid var(--border)`
+              fontWeight: 'bold',
+              border: '1px solid var(--border)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: locationTabsExpanded ? 10 : 0
             }}
           >
-            All Areas
+            <span>Storage Areas {locationFilter && `(${locationFilter})`}</span>
+            <span style={{ fontSize: 12 }}>{locationTabsExpanded ? '▼' : '▶'}</span>
           </div>
-          {locations.filter(loc => loc !== 'Unknown').map(location => (
-            <div 
-              key={location}
-              onClick={() => setLocationFilter(location)}
-              style={{ 
-                background: locationFilter === location ? 'var(--primary)' : 'var(--stats-card-bg)',
-                color: locationFilter === location ? 'white' : 'var(--text-secondary)',
-                padding: '8px 16px', 
-                borderRadius: 20, 
-                cursor: 'pointer',
-                fontSize: 14,
-                fontWeight: locationFilter === location ? 'bold' : 'normal',
-                transition: 'all 0.2s',
-                border: locationFilter === location ? 'none' : `1px solid var(--border)`
-              }}
-            >
-              {location}
+          
+          {locationTabsExpanded && (
+            <div style={{ 
+              display: 'flex', 
+              gap: 5, 
+              flexWrap: 'wrap',
+              padding: '10px',
+              background: 'var(--filter-bg)',
+              borderRadius: 4,
+              border: '1px solid var(--border)'
+            }}>
+              <div 
+                onClick={() => setLocationFilter("")}
+                style={{ 
+                  background: locationFilter === "" ? 'var(--primary)' : 'var(--stats-card-bg)',
+                  color: locationFilter === "" ? 'white' : 'var(--text-secondary)',
+                  padding: '6px 12px', 
+                  borderRadius: 16, 
+                  cursor: 'pointer',
+                  fontSize: 12,
+                  fontWeight: locationFilter === "" ? 'bold' : 'normal',
+                  transition: 'all 0.2s',
+                  border: locationFilter === "" ? 'none' : `1px solid var(--border)`
+                }}
+              >
+                All Areas
+              </div>
+              {locations.filter(loc => loc !== 'Unknown').map(location => (
+                <div 
+                  key={location}
+                  onClick={() => setLocationFilter(location)}
+                  style={{ 
+                    background: locationFilter === location ? 'var(--primary)' : 'var(--stats-card-bg)',
+                    color: locationFilter === location ? 'white' : 'var(--text-secondary)',
+                    padding: '6px 12px', 
+                    borderRadius: 16, 
+                    cursor: 'pointer',
+                    fontSize: 12,
+                    fontWeight: locationFilter === location ? 'bold' : 'normal',
+                    transition: 'all 0.2s',
+                    border: locationFilter === location ? 'none' : `1px solid var(--border)`
+                  }}
+                >
+                  {location}
+                </div>
+              ))}
             </div>
-          ))}
-          <Link href="/shopping-list" style={{
-            background: 'var(--success)',
-            color: 'white',
-            padding: '8px 16px', 
-            borderRadius: 20, 
-            fontSize: 14,
-            fontWeight: 'bold',
-            textDecoration: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 5,
-            transition: 'all 0.2s'
-          }}>
-            🛒 Shopping List
-          </Link>
+          )}
         </div>
       </div>
 
@@ -1106,6 +1120,31 @@ export default function Inventory() {
           </div>
         </div>
       )}
+
+      {/* Floating Action Button for Shopping List */}
+      <Link href="/shopping-list" style={{
+        position: 'fixed',
+        bottom: '20px',
+        right: '20px',
+        background: 'var(--success)',
+        color: 'white',
+        width: '60px',
+        height: '60px',
+        borderRadius: '50%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        textDecoration: 'none',
+        fontSize: '24px',
+        fontWeight: 'bold',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+        transition: 'all 0.2s',
+        zIndex: 1000,
+        border: 'none',
+        cursor: 'pointer'
+      }}>
+        🛒
+      </Link>
     </div>
   );
 }
