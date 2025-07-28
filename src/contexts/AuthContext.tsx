@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { createClient, User } from '@supabase/supabase-js';
+import { User } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabase';
 
 interface Household {
   id: string;
@@ -29,19 +30,6 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// Check for required environment variables
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-  console.error('Missing Supabase environment variables. Please check your .env.local file.');
-}
-
-const supabase = createClient(
-  supabaseUrl || '',
-  supabaseKey || ''
-);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -99,8 +87,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         // Create profile via API
         try {
-          console.log('Attempting to create profile for user:', data.user.id);
-          
           const response = await fetch('/api/create-profile', {
             method: 'POST',
             headers: {
@@ -114,14 +100,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             })
           });
 
-          console.log('Profile creation response status:', response.status);
-          
           if (response.ok) {
-            const result = await response.json();
-            console.log('Profile created successfully:', result);
+            console.log('Profile created successfully');
           } else {
-            const error = await response.json();
-            console.error('Failed to create profile:', error);
+            console.error('Failed to create profile');
           }
         } catch (profileError) {
           console.error('Profile creation error:', profileError);

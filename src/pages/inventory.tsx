@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
+import { supabase } from "../lib/supabase";
 
 interface PantryItem {
   id: number;
@@ -163,7 +164,7 @@ export default function Inventory() {
     }
   };
 
-    const markAsUsed = async (id: number) => {
+  const markAsUsed = async (id: number) => {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/pantry_items?id=eq.${id}`, {
         method: 'PATCH',
@@ -191,21 +192,29 @@ export default function Inventory() {
 
   const addToShoppingList = async (item: PantryItem) => {
     try {
-      // Get existing shopping list from localStorage
-      const existingList = localStorage.getItem('shoppingList');
-      const currentList = existingList ? JSON.parse(existingList) : [];
-      
-      // Check if item is already in shopping list
-      if (currentList.find((listItem: PantryItem) => listItem.id === item.id)) {
-        alert(`${item.name} is already in your shopping list`);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        alert('Please log in to add items to shopping list');
         return;
       }
-      
-      // Add item to shopping list
-      const updatedList = [...currentList, item];
-      localStorage.setItem('shoppingList', JSON.stringify(updatedList));
-      
-      alert(`${item.name} added to shopping list for next trip`);
+
+      const response = await fetch('/api/shopping-list', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ itemId: item.id })
+      });
+
+      if (response.ok) {
+        alert(`${item.name} added to shopping list for next trip`);
+      } else if (response.status === 409) {
+        alert(`${item.name} is already in your shopping list`);
+      } else {
+        const errorData = await response.json();
+        alert(`Error adding to shopping list: ${errorData.error}`);
+      }
     } catch (error) {
       console.error('Error adding to shopping list:', error);
       alert('Error adding to shopping list');
@@ -249,13 +258,19 @@ export default function Inventory() {
     return 'ok';
   };
 
-   const filteredAndSortedItems = items
+  const filteredAndSortedItems = items
     .filter(item => {
       const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           item.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           item.category.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesLocation = !locationFilter || item.location === locationFilter;
-             const matchesUsedStatus = showUsedItems || (item.completion === null || item.completion > 0);
+      
+      // For "Finished" tab, show all finished items regardless of showUsedItems setting
+      // For all other tabs, apply the showUsedItems filter
+      const matchesUsedStatus = expiryFilter === "finished" ? 
+        true : // Show all items when on "Finished" tab
+        showUsedItems || (item.completion === null || item.completion > 0);
+        
       const matchesExpiryFilter = !expiryFilter || 
                                  (expiryFilter === "finished" ? item.completion === 0 : 
                                   expiryFilter === "expiring-week" ? 
@@ -331,379 +346,392 @@ export default function Inventory() {
         </div>
       </div>
 
-               {/* Compact Stats Cards */}
+      {/* Sticky Navigation Container */}
+      <div style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+        background: 'var(--background)',
+        paddingTop: 10,
+        paddingBottom: 10,
+        borderBottom: '1px solid var(--border)',
+        marginBottom: 20
+      }}>
+        {/* Compact Stats Cards */}
         <div style={{ 
           display: 'flex', 
           gap: 10, 
-          marginBottom: 20,
+          marginBottom: 15,
           flexWrap: 'wrap'
         }}>
-                     <div 
-             onClick={() => setExpiryFilter("")}
-             style={{ 
-               background: expiryFilter === "" ? 'var(--stats-card-active)' : 'var(--stats-card-bg)',
-               padding: '8px 12px', 
-               borderRadius: 4, 
-               cursor: 'pointer',
-               border: expiryFilter === "" ? '2px solid var(--primary)' : '1px solid var(--border)',
-               transition: 'all 0.2s',
-               display: 'flex',
-               alignItems: 'center',
-               gap: 8
-             }}
-           >
-             <span style={{ fontSize: 16, fontWeight: 'bold', color: 'var(--primary)' }}>{filteredAndSortedItems.length}</span>
-             <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>All Items</span>
-           </div>
-                     <div 
-             onClick={() => setExpiryFilter("expiring-week")}
-             style={{ 
-               background: expiryFilter === "expiring-week" ? 'var(--expiring-week-bg)' : 'var(--stats-card-bg)',
-               padding: '8px 12px', 
-               borderRadius: 4, 
-               cursor: 'pointer',
-               border: expiryFilter === "expiring-week" ? '2px solid var(--expiring-week-border)' : '1px solid var(--border)',
-               transition: 'all 0.2s',
-               display: 'flex',
-               alignItems: 'center',
-               gap: 8
-             }}
-           >
-             <span style={{ fontSize: 16, fontWeight: 'bold', color: 'var(--expiring-week-border)' }}>
-               {items.filter(item => 
-                 getExpiryStatus(item.expiry) === 'expiring-week' || 
-                 getExpiryStatus(item.expiry) === 'expiring-3-days' || 
-                 getExpiryStatus(item.expiry) === 'expiring-today'
-               ).length}
-             </span>
-             <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Expiring in a Week</span>
-           </div>
-                     <div 
-             onClick={() => setExpiryFilter("expiring-3-days")}
-             style={{ 
-               background: expiryFilter === "expiring-3-days" ? 'var(--expiring-3-days-bg)' : 'var(--stats-card-bg)',
-               padding: '8px 12px', 
-               borderRadius: 4, 
-               cursor: 'pointer',
-               border: expiryFilter === "expiring-3-days" ? '2px solid var(--expiring-3-days-border)' : '1px solid var(--border)',
-               transition: 'all 0.2s',
-               display: 'flex',
-               alignItems: 'center',
-               gap: 8
-             }}
-           >
-             <span style={{ fontSize: 16, fontWeight: 'bold', color: 'var(--expiring-3-days-border)' }}>
-               {items.filter(item => 
-                 getExpiryStatus(item.expiry) === 'expiring-3-days' || 
-                 getExpiryStatus(item.expiry) === 'expiring-today'
-               ).length}
-             </span>
-             <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Expiring in 3 Days</span>
-           </div>
-           <div 
-             onClick={() => setExpiryFilter("expiring-today")}
-             style={{ 
-               background: expiryFilter === "expiring-today" ? 'var(--expiring-today-bg)' : 'var(--stats-card-bg)',
-               padding: '8px 12px', 
-               borderRadius: 4, 
-               cursor: 'pointer',
-               border: expiryFilter === "expiring-today" ? '2px solid var(--expiring-today-border)' : '1px solid var(--border)',
-               transition: 'all 0.2s',
-               display: 'flex',
-               alignItems: 'center',
-               gap: 8
-             }}
-           >
-             <span style={{ fontSize: 16, fontWeight: 'bold', color: 'var(--expiring-today-border)' }}>
-               {items.filter(item => getExpiryStatus(item.expiry) === 'expiring-today').length}
-             </span>
-             <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Expiring Today</span>
-           </div>
-           <div 
-             onClick={() => setExpiryFilter("expired")}
-             style={{ 
-               background: expiryFilter === "expired" ? 'var(--expired-bg)' : 'var(--stats-card-bg)',
-               padding: '8px 12px', 
-               borderRadius: 4, 
-               cursor: 'pointer',
-               border: expiryFilter === "expired" ? '2px solid var(--expired-border)' : '1px solid var(--border)',
-               transition: 'all 0.2s',
-               display: 'flex',
-               alignItems: 'center',
-               gap: 8
-             }}
-           >
-             <span style={{ fontSize: 16, fontWeight: 'bold', color: 'var(--expired-border)' }}>
-               {items.filter(item => getExpiryStatus(item.expiry) === 'expired').length}
-             </span>
-             <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Expired</span>
-           </div>
-           <div 
-             onClick={() => setExpiryFilter("finished")}
-             style={{ 
-               background: expiryFilter === "finished" ? 'var(--finished-bg)' : 'var(--stats-card-bg)',
-               padding: '8px 12px', 
-               borderRadius: 4, 
-               cursor: 'pointer',
-               border: expiryFilter === "finished" ? '2px solid var(--finished-border)' : '1px solid var(--border)',
-               transition: 'all 0.2s',
-               display: 'flex',
-               alignItems: 'center',
-               gap: 8
-             }}
-           >
-             <span style={{ fontSize: 16, fontWeight: 'bold', color: 'var(--finished-border)' }}>
-               {items.filter(item => item.completion === 0).length}
-             </span>
-             <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Finished</span>
-           </div>
+          <div 
+            onClick={() => setExpiryFilter("")}
+            style={{ 
+              background: expiryFilter === "" ? 'var(--stats-card-active)' : 'var(--stats-card-bg)',
+              padding: '8px 12px', 
+              borderRadius: 4, 
+              cursor: 'pointer',
+              border: expiryFilter === "" ? '2px solid var(--primary)' : '1px solid var(--border)',
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8
+            }}
+          >
+            <span style={{ fontSize: 16, fontWeight: 'bold', color: 'var(--primary)' }}>{filteredAndSortedItems.length}</span>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>All Items</span>
+          </div>
+          <div 
+            onClick={() => setExpiryFilter("expiring-week")}
+            style={{ 
+              background: expiryFilter === "expiring-week" ? 'var(--expiring-week-bg)' : 'var(--stats-card-bg)',
+              padding: '8px 12px', 
+              borderRadius: 4, 
+              cursor: 'pointer',
+              border: expiryFilter === "expiring-week" ? '2px solid var(--expiring-week-border)' : '1px solid var(--border)',
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8
+            }}
+          >
+            <span style={{ fontSize: 16, fontWeight: 'bold', color: 'var(--expiring-week-border)' }}>
+              {items.filter(item => 
+                getExpiryStatus(item.expiry) === 'expiring-week' || 
+                getExpiryStatus(item.expiry) === 'expiring-3-days' || 
+                getExpiryStatus(item.expiry) === 'expiring-today'
+              ).length}
+            </span>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Week</span>
+          </div>
+          <div 
+            onClick={() => setExpiryFilter("expiring-3-days")}
+            style={{ 
+              background: expiryFilter === "expiring-3-days" ? 'var(--expiring-3-days-bg)' : 'var(--stats-card-bg)',
+              padding: '8px 12px', 
+              borderRadius: 4, 
+              cursor: 'pointer',
+              border: expiryFilter === "expiring-3-days" ? '2px solid var(--expiring-3-days-border)' : '1px solid var(--border)',
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8
+            }}
+          >
+            <span style={{ fontSize: 16, fontWeight: 'bold', color: 'var(--expiring-3-days-border)' }}>
+              {items.filter(item => 
+                getExpiryStatus(item.expiry) === 'expiring-3-days' || 
+                getExpiryStatus(item.expiry) === 'expiring-today'
+              ).length}
+            </span>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>3 Days</span>
+          </div>
+          <div 
+            onClick={() => setExpiryFilter("expiring-today")}
+            style={{ 
+              background: expiryFilter === "expiring-today" ? 'var(--expiring-today-bg)' : 'var(--stats-card-bg)',
+              padding: '8px 12px', 
+              borderRadius: 4, 
+              cursor: 'pointer',
+              border: expiryFilter === "expiring-today" ? '2px solid var(--expiring-today-border)' : '1px solid var(--border)',
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8
+            }}
+          >
+            <span style={{ fontSize: 16, fontWeight: 'bold', color: 'var(--expiring-today-border)' }}>
+              {items.filter(item => getExpiryStatus(item.expiry) === 'expiring-today').length}
+            </span>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Today</span>
+          </div>
+          <div 
+            onClick={() => setExpiryFilter("expired")}
+            style={{ 
+              background: expiryFilter === "expired" ? 'var(--expired-bg)' : 'var(--stats-card-bg)',
+              padding: '8px 12px', 
+              borderRadius: 4, 
+              cursor: 'pointer',
+              border: expiryFilter === "expired" ? '2px solid var(--expired-border)' : '1px solid var(--border)',
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8
+            }}
+          >
+            <span style={{ fontSize: 16, fontWeight: 'bold', color: 'var(--expired-border)' }}>
+              {items.filter(item => getExpiryStatus(item.expiry) === 'expired').length}
+            </span>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Expired</span>
+          </div>
+          <div 
+            onClick={() => setExpiryFilter("finished")}
+            style={{ 
+              background: expiryFilter === "finished" ? 'var(--finished-bg)' : 'var(--stats-card-bg)',
+              padding: '8px 12px', 
+              borderRadius: 4, 
+              cursor: 'pointer',
+              border: expiryFilter === "finished" ? '2px solid var(--finished-border)' : '1px solid var(--border)',
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8
+            }}
+          >
+            <span style={{ fontSize: 16, fontWeight: 'bold', color: 'var(--finished-border)' }}>
+              {items.filter(item => item.completion === 0).length}
+            </span>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Finished</span>
+          </div>
         </div>
 
-                 {/* Location Tabs */}
-                   <div style={{ 
-            display: 'flex', 
-            gap: 5, 
-            marginBottom: 20,
-            flexWrap: 'wrap',
-            borderBottom: `1px solid var(--border)`,
-            paddingBottom: 10
-          }}>
+        {/* Location Tabs */}
+        <div style={{ 
+          display: 'flex', 
+          gap: 5, 
+          flexWrap: 'wrap',
+          marginBottom: 20
+        }}>
+          <div 
+            onClick={() => setLocationFilter("")}
+            style={{ 
+              background: locationFilter === "" ? 'var(--primary)' : 'var(--stats-card-bg)',
+              color: locationFilter === "" ? 'white' : 'var(--text-secondary)',
+              padding: '8px 16px', 
+              borderRadius: 20, 
+              cursor: 'pointer',
+              fontSize: 14,
+              fontWeight: locationFilter === "" ? 'bold' : 'normal',
+              transition: 'all 0.2s',
+              border: locationFilter === "" ? 'none' : `1px solid var(--border)`
+            }}
+          >
+            All Areas
+          </div>
+          {locations.filter(loc => loc !== 'Unknown').map(location => (
             <div 
-              onClick={() => setLocationFilter("")}
+              key={location}
+              onClick={() => setLocationFilter(location)}
               style={{ 
-                background: locationFilter === "" ? 'var(--primary)' : 'var(--stats-card-bg)',
-                color: locationFilter === "" ? 'white' : 'var(--text-secondary)',
+                background: locationFilter === location ? 'var(--primary)' : 'var(--stats-card-bg)',
+                color: locationFilter === location ? 'white' : 'var(--text-secondary)',
                 padding: '8px 16px', 
                 borderRadius: 20, 
                 cursor: 'pointer',
                 fontSize: 14,
-                fontWeight: locationFilter === "" ? 'bold' : 'normal',
+                fontWeight: locationFilter === location ? 'bold' : 'normal',
                 transition: 'all 0.2s',
-                border: locationFilter === "" ? 'none' : `1px solid var(--border)`
+                border: locationFilter === location ? 'none' : `1px solid var(--border)`
               }}
             >
-              All Areas
+              {location}
             </div>
-            {locations.filter(loc => loc !== 'Unknown').map(location => (
-              <div 
-                key={location}
-                onClick={() => setLocationFilter(location)}
-                style={{ 
-                  background: locationFilter === location ? 'var(--primary)' : 'var(--stats-card-bg)',
-                  color: locationFilter === location ? 'white' : 'var(--text-secondary)',
-                  padding: '8px 16px', 
-                  borderRadius: 20, 
+          ))}
+          <Link href="/shopping-list" style={{
+            background: 'var(--success)',
+            color: 'white',
+            padding: '8px 16px', 
+            borderRadius: 20, 
+            fontSize: 14,
+            fontWeight: 'bold',
+            textDecoration: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+            transition: 'all 0.2s'
+          }}>
+            🛒 Shopping List
+          </Link>
+        </div>
+      </div>
+
+             {/* Compact Filters */}
+       <div style={{ 
+         display: 'flex', 
+         gap: 10, 
+         marginBottom: 20,
+         padding: 10,
+         background: 'var(--filter-bg)',
+         borderRadius: 4,
+         border: `1px solid var(--border)`,
+         alignItems: 'center',
+         flexWrap: 'wrap'
+       }}>
+         <div style={{ flex: 1, minWidth: 200 }}>
+           <input
+             type="text"
+             placeholder="Search by name, brand, or category..."
+             value={searchTerm}
+             onChange={(e) => setSearchTerm(e.target.value)}
+             style={{
+               width: '100%',
+               padding: '8px 12px',
+               border: `1px solid var(--input-border)`,
+               borderRadius: 4,
+               fontSize: 14,
+               background: 'var(--input-bg)',
+               color: 'var(--text-primary)'
+             }}
+           />
+         </div>
+
+         <div style={{ minWidth: 120 }}>
+           <select
+             value={sortBy}
+             onChange={(e) => setSortBy(e.target.value)}
+             style={{
+               width: '100%',
+               padding: '8px 12px',
+               border: `1px solid var(--input-border)`,
+               borderRadius: 4,
+               fontSize: 14,
+               background: 'var(--input-bg)',
+               color: 'var(--text-primary)'
+             }}
+           >
+             <option value="name">Name</option>
+             <option value="expiry">Expiry</option>
+             <option value="scanned_at">Added</option>
+             <option value="location">Location</option>
+           </select>
+         </div>
+
+         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+           <input
+             type="checkbox"
+             checked={showUsedItems}
+             onChange={(e) => setShowUsedItems(e.target.checked)}
+             style={{ width: 16, height: 16 }}
+           />
+           <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
+             Show all
+           </span>
+         </div>
+       </div>
+
+      {/* Items Grid */}
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+        gap: 20,
+        maxWidth: '100%'
+      }}>
+        {filteredAndSortedItems.map(item => (
+          <div key={item.id} style={{
+            border: `1px solid var(--card-border)`,
+            borderRadius: 4,
+            padding: 20,
+            background: 'var(--card-bg)',
+            position: 'relative',
+            maxWidth: '400px',
+            justifySelf: 'center'
+          }}>
+            
+            {/* Expiry Status Indicator */}
+            {item.expiry && (
+              <div style={{
+                position: 'absolute',
+                top: 15,
+                right: 15,
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                background: getExpiryStatus(item.expiry) === 'expired' ? 'var(--danger)' :
+                           getExpiryStatus(item.expiry) === 'expiring-today' ? 'var(--danger)' :
+                           getExpiryStatus(item.expiry) === 'expiring-3-days' ? 'var(--warning)' :
+                           getExpiryStatus(item.expiry) === 'expiring-week' ? 'var(--warning)' : 'var(--success)',
+                border: '2px solid var(--card-bg)',
+                boxShadow: `0 0 0 1px var(--border)`
+              }} />
+            )}
+
+            {/* Image */}
+            {item.image && (
+              <div style={{ 
+                textAlign: 'center', 
+                marginBottom: 15,
+                height: 250,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <Image
+                  src={item.image}
+                  alt={item.name}
+                  width={300}
+                  height={250}
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '100%',
+                    borderRadius: 8,
+                    objectFit: 'contain'
+                  }}
+                  onError={(e) => {
+                    console.error('Image failed to load:', item.image);
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Item Details */}
+            <h3 style={{ margin: '0 0 10px 0', color: 'var(--text-primary)' }}>{item.name}</h3>
+            
+            {/* Location - Prominent Display */}
+            <div style={{ marginBottom: 10 }}>
+              <span style={{ 
+                fontSize: 14, 
+                color: 'var(--text-secondary)', 
+                fontWeight: 'bold',
+                background: 'var(--location-bg)',
+                padding: '4px 8px',
+                borderRadius: 3,
+                display: 'inline-block'
+              }}>
+                {item.location || 'Unknown'}
+              </span>
+            </div>
+            
+            <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 10 }}>
+              {item.brand && <div><strong>Brand:</strong> {item.brand}</div>}
+              {item.category && <div><strong>Category:</strong> {item.category}</div>}
+              <div><strong>Quantity:</strong> {item.quantity}</div>
+              <div><strong>Status:</strong> {
+                item.completion === null ? 'Unopened/New' :
+                item.completion === 100 ? 'Unopened/New' :
+                item.completion === 0 ? 'Used' :
+                `${item.completion}% remaining`
+              }</div>
+              {item.expiry && (
+                <div><strong>Expires:</strong> {new Date(item.expiry).toLocaleDateString()}</div>
+              )}
+              {item.purchase_date && (
+                <div><strong>Purchased:</strong> {new Date(item.purchase_date).toLocaleDateString()}</div>
+              )}
+              {item.notes && (
+                <div><strong>Notes:</strong> {item.notes}</div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: 8, marginTop: 15 }}>
+              <button
+                onClick={() => setEditingItem(item)}
+                style={{
+                  padding: '6px 12px',
+                  background: 'var(--stats-card-bg)',
+                  color: 'var(--text-primary)',
+                  border: `1px solid var(--border)`,
+                  borderRadius: 4,
                   cursor: 'pointer',
-                  fontSize: 14,
-                  fontWeight: locationFilter === location ? 'bold' : 'normal',
-                  transition: 'all 0.2s',
-                  border: locationFilter === location ? 'none' : `1px solid var(--border)`
+                  fontSize: 13
                 }}
               >
-                {location}
-              </div>
-            ))}
-            <Link href="/shopping-list" style={{
-              background: 'var(--success)',
-              color: 'white',
-              padding: '8px 16px', 
-              borderRadius: 20, 
-              fontSize: 14,
-              fontWeight: 'bold',
-              textDecoration: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 5,
-              transition: 'all 0.2s'
-            }}>
-              🛒 Shopping List
-            </Link>
-          </div>
-
-               {/* Filters */}
-                 <div style={{ 
-           display: 'grid', 
-           gridTemplateColumns: '1fr 1fr 1fr', 
-           gap: 15, 
-           marginBottom: 30,
-           padding: 20,
-           background: 'var(--filter-bg)',
-           borderRadius: 4,
-           border: `1px solid var(--border)`
-         }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
-              Search
-            </label>
-            <input
-              type="text"
-              placeholder="Search by name, brand, or category..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '10px',
-                border: `1px solid var(--input-border)`,
-                borderRadius: 4,
-                fontSize: 16,
-                background: 'var(--input-bg)',
-                color: 'var(--text-primary)'
-              }}
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
-              Sort By
-            </label>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '10px',
-                border: `1px solid var(--input-border)`,
-                borderRadius: 4,
-                fontSize: 16,
-                background: 'var(--input-bg)',
-                color: 'var(--text-primary)'
-              }}
-            >
-              <option value="name">Name</option>
-              <option value="expiry">Expiry Date</option>
-              <option value="scanned_at">Date Added</option>
-              <option value="location">Location</option>
-            </select>
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
-              Show All Items (Including Used)
-            </label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <input
-                type="checkbox"
-                checked={showUsedItems}
-                onChange={(e) => setShowUsedItems(e.target.checked)}
-                style={{ width: 20, height: 20 }}
-              />
-            </div>
-          </div>
-        </div>
-
-         
-
-       
-
-                            {/* Items Grid */}
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-          gap: 20,
-          maxWidth: '100%'
-        }}>
-         {filteredAndSortedItems.map(item => (
-                                             <div key={item.id} style={{
-               border: `1px solid var(--card-border)`,
-               borderRadius: 4,
-               padding: 20,
-               background: 'var(--card-bg)',
-               position: 'relative',
-               maxWidth: '400px',
-               justifySelf: 'center'
-             }}>
-            
-
-                         {/* Expiry Status Indicator */}
-                           {item.expiry && (
-                <div style={{
-                  position: 'absolute',
-                  top: 15,
-                  right: 15,
-                  width: 8,
-                  height: 8,
-                  borderRadius: '50%',
-                  background: getExpiryStatus(item.expiry) === 'expired' ? 'var(--danger)' :
-                             getExpiryStatus(item.expiry) === 'expiring-today' ? 'var(--danger)' :
-                             getExpiryStatus(item.expiry) === 'expiring-3-days' ? 'var(--warning)' :
-                             getExpiryStatus(item.expiry) === 'expiring-week' ? 'var(--warning)' : 'var(--success)',
-                  border: '2px solid var(--card-bg)',
-                  boxShadow: `0 0 0 1px var(--border)`
-                }} />
-              )}
-
-                           {/* Image */}
-              {item.image && (
-                <div style={{ 
-                  textAlign: 'center', 
-                  marginBottom: 15,
-                  height: 250,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <Image
-                    src={item.image}
-                    alt={item.name}
-                    width={300}
-                    height={250}
-                    style={{
-                      maxWidth: '100%',
-                      maxHeight: '100%',
-                      borderRadius: 8,
-                      objectFit: 'contain'
-                    }}
-                    onError={(e) => {
-                      console.error('Image failed to load:', item.image);
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
-                </div>
-              )}
-
-                                                   {/* Item Details */}
-              <h3 style={{ margin: '0 0 10px 0', color: 'var(--text-primary)' }}>{item.name}</h3>
-              
-                            {/* Location - Prominent Display */}
-               <div style={{ marginBottom: 10 }}>
-                 <span style={{ 
-                   fontSize: 14, 
-                   color: 'var(--text-secondary)', 
-                   fontWeight: 'bold',
-                   background: 'var(--location-bg)',
-                   padding: '4px 8px',
-                   borderRadius: 3,
-                   display: 'inline-block'
-                 }}>
-                   {item.location || 'Unknown'}
-                 </span>
-               </div>
-              
-                           <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 10 }}>
-                 {item.brand && <div><strong>Brand:</strong> {item.brand}</div>}
-                 {item.category && <div><strong>Category:</strong> {item.category}</div>}
-                 <div><strong>Quantity:</strong> {item.quantity}</div>
-                                <div><strong>Status:</strong> {
-                   item.completion === null ? 'Unopened/New' :
-                   item.completion === 100 ? 'Unopened/New' :
-                   item.completion === 0 ? 'Used' :
-                   `${item.completion}% remaining`
-                 }</div>
-                {item.expiry && (
-                  <div><strong>Expires:</strong> {new Date(item.expiry).toLocaleDateString()}</div>
-                )}
-                                {item.purchase_date && (
-                   <div><strong>Purchased:</strong> {new Date(item.purchase_date).toLocaleDateString()}</div>
-                 )}
-                 {item.notes && (
-                   <div><strong>Notes:</strong> {item.notes}</div>
-                 )}
-               </div>
-
-                                                   {/* Actions */}
-              <div style={{ display: 'flex', gap: 8, marginTop: 15 }}>
+                Edit
+              </button>
+              {(item.completion === null || item.completion > 0) && (
                 <button
-                  onClick={() => setEditingItem(item)}
+                  onClick={() => markAsUsed(item.id)}
                   style={{
                     padding: '6px 12px',
                     background: 'var(--stats-card-bg)',
@@ -714,184 +742,192 @@ export default function Inventory() {
                     fontSize: 13
                   }}
                 >
-                  Edit
+                  Finished
                 </button>
-                                {(item.completion === null || item.completion > 0) && (
-                   <button
-                     onClick={() => markAsUsed(item.id)}
-                     style={{
-                       padding: '6px 12px',
-                       background: 'var(--stats-card-bg)',
-                       color: 'var(--text-primary)',
-                       border: `1px solid var(--border)`,
-                       borderRadius: 4,
-                       cursor: 'pointer',
-                       fontSize: 13
-                     }}
-                   >
-                                          Finished
-                   </button>
-                 )}
-                <button
-                  onClick={() => addToShoppingList(item)}
-                  style={{
-                    padding: '6px 12px',
-                    background: 'var(--success)',
-                    color: 'white',
-                    border: `1px solid var(--success)`,
-                    borderRadius: 4,
-                    cursor: 'pointer',
-                    fontSize: 13
-                  }}
-                >
-                  Shop
-                </button>
-                <button
-                  onClick={() => deleteItem(item.id)}
-                  style={{
-                    padding: '6px 12px',
-                    background: 'var(--stats-card-bg)',
-                    color: 'var(--danger)',
-                    border: `1px solid var(--border)`,
-                    borderRadius: 4,
-                    cursor: 'pointer',
-                    fontSize: 13
-                  }}
-                >
-                  Delete
-                </button>
-              </div>
+              )}
+              <button
+                onClick={() => addToShoppingList(item)}
+                style={{
+                  padding: '6px 12px',
+                  background: 'var(--success)',
+                  color: 'white',
+                  border: `1px solid var(--success)`,
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                  fontSize: 13
+                }}
+              >
+                Shop
+              </button>
+              <button
+                onClick={() => deleteItem(item.id)}
+                style={{
+                  padding: '6px 12px',
+                  background: 'var(--stats-card-bg)',
+                  color: 'var(--danger)',
+                  border: `1px solid var(--border)`,
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                  fontSize: 13
+                }}
+              >
+                Delete
+              </button>
+            </div>
           </div>
         ))}
       </div>
 
-                           {filteredAndSortedItems.length === 0 && (
-          <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-secondary)' }}>
-            <h3>No items found</h3>
-            <p>Try adjusting your search or filters</p>
-          </div>
-        )}
+      {filteredAndSortedItems.length === 0 && (
+        <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-secondary)' }}>
+          <h3>No items found</h3>
+          <p>Try adjusting your search or filters</p>
+        </div>
+      )}
 
-               {/* Edit Modal */}
-        {editingItem && (
+      {/* Edit Modal */}
+      {editingItem && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'var(--modal-overlay)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
           <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'var(--modal-overlay)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 1000
+            background: 'var(--modal-bg)',
+            padding: 30,
+            borderRadius: 8,
+            width: '90%',
+            maxWidth: 500,
+            maxHeight: '90vh',
+            overflow: 'auto'
           }}>
-            <div style={{
-              background: 'var(--modal-bg)',
-              padding: 30,
-              borderRadius: 8,
-              width: '90%',
-              maxWidth: 500,
-              maxHeight: '90vh',
-              overflow: 'auto'
-            }}>
-              <h2 style={{ margin: '0 0 20px 0', color: 'var(--text-primary)' }}>Edit Item</h2>
-             
-             <div style={{ display: 'grid', gap: 15 }}>
-                               <div>
-                  <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                    Name
-                  </label>
-                  <input
-                    type="text"
-                    value={editingItem.name}
-                    onChange={(e) => setEditingItem({...editingItem, name: e.target.value})}
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      border: `1px solid var(--input-border)`,
-                      borderRadius: 4,
-                      fontSize: 16,
-                      background: 'var(--input-bg)',
-                      color: 'var(--text-primary)'
-                    }}
-                  />
-                </div>
+            <h2 style={{ margin: '0 0 20px 0', color: 'var(--text-primary)' }}>Edit Item</h2>
+            
+            <div style={{ display: 'grid', gap: 15 }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                  Name
+                </label>
+                <input
+                  type="text"
+                  value={editingItem.name}
+                  onChange={(e) => setEditingItem({...editingItem, name: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: `1px solid var(--input-border)`,
+                    borderRadius: 4,
+                    fontSize: 16,
+                    background: 'var(--input-bg)',
+                    color: 'var(--text-primary)'
+                  }}
+                />
+              </div>
 
-                               <div>
-                  <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                    Brand
-                  </label>
-                  <input
-                    type="text"
-                    value={editingItem.brand || ''}
-                    onChange={(e) => setEditingItem({...editingItem, brand: e.target.value})}
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      border: `1px solid var(--input-border)`,
-                      borderRadius: 4,
-                      fontSize: 16,
-                      background: 'var(--input-bg)',
-                      color: 'var(--text-primary)'
-                    }}
-                  />
-                </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                  Brand
+                </label>
+                <input
+                  type="text"
+                  value={editingItem.brand || ''}
+                  onChange={(e) => setEditingItem({...editingItem, brand: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: `1px solid var(--input-border)`,
+                    borderRadius: 4,
+                    fontSize: 16,
+                    background: 'var(--input-bg)',
+                    color: 'var(--text-primary)'
+                  }}
+                />
+              </div>
 
-                <div>
-                  <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                    Category
-                  </label>
-                  <input
-                    type="text"
-                    value={editingItem.category || ''}
-                    onChange={(e) => setEditingItem({...editingItem, category: e.target.value})}
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      border: `1px solid var(--input-border)`,
-                      borderRadius: 4,
-                      fontSize: 16,
-                      background: 'var(--input-bg)',
-                      color: 'var(--text-primary)'
-                    }}
-                  />
-                </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                  Category
+                </label>
+                <input
+                  type="text"
+                  value={editingItem.category || ''}
+                  onChange={(e) => setEditingItem({...editingItem, category: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: `1px solid var(--input-border)`,
+                    borderRadius: 4,
+                    fontSize: 16,
+                    background: 'var(--input-bg)',
+                    color: 'var(--text-primary)'
+                  }}
+                />
+              </div>
 
-                <div>
-                  <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                    Location
-                  </label>
-                  <select
-                    value={editingItem.location || ''}
-                    onChange={(e) => setEditingItem({...editingItem, location: e.target.value})}
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      border: `1px solid var(--input-border)`,
-                      borderRadius: 4,
-                      fontSize: 16,
-                      background: 'var(--input-bg)',
-                      color: 'var(--text-primary)'
-                    }}
-                  >
-                    <option value="">Select Location</option>
-                    {locations.map(location => (
-                      <option key={location} value={location}>{location}</option>
-                    ))}
-                  </select>
-                </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                  Location
+                </label>
+                <select
+                  value={editingItem.location || ''}
+                  onChange={(e) => setEditingItem({...editingItem, location: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: `1px solid var(--input-border)`,
+                    borderRadius: 4,
+                    fontSize: 16,
+                    background: 'var(--input-bg)',
+                    color: 'var(--text-primary)'
+                  }}
+                >
+                  <option value="">Select Location</option>
+                  {locations.map(location => (
+                    <option key={location} value={location}>{location}</option>
+                  ))}
+                </select>
+              </div>
 
-                <div>
-                  <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                    Quantity
-                  </label>
+              <div>
+                <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                  Quantity
+                </label>
+                <input
+                  type="number"
+                  value={editingItem.quantity}
+                  onChange={(e) => setEditingItem({...editingItem, quantity: parseInt(e.target.value) || 1})}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: `1px solid var(--input-border)`,
+                    borderRadius: 4,
+                    fontSize: 16,
+                    background: 'var(--input-bg)',
+                    color: 'var(--text-primary)'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                  How much left (%)
+                </label>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                   <input
                     type="number"
-                    value={editingItem.quantity}
-                    onChange={(e) => setEditingItem({...editingItem, quantity: parseInt(e.target.value) || 1})}
+                    min="0"
+                    max="100"
+                    value={editingItem.completion}
+                    onChange={(e) => setEditingItem({...editingItem, completion: parseInt(e.target.value) || 0})}
                     style={{
-                      width: '100%',
+                      flex: 1,
                       padding: '10px',
                       border: `1px solid var(--input-border)`,
                       borderRadius: 4,
@@ -899,200 +935,177 @@ export default function Inventory() {
                       background: 'var(--input-bg)',
                       color: 'var(--text-primary)'
                     }}
+                    placeholder="Enter percentage (0-100)"
                   />
+                  <span style={{ fontSize: 14, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                    % remaining
+                  </span>
                 </div>
-
-                                                                                                                                   <div>
-                     <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                       How much left (%)
-                     </label>
-                     <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                       <input
-                         type="number"
-                         min="0"
-                         max="100"
-                         value={editingItem.completion}
-                         onChange={(e) => setEditingItem({...editingItem, completion: parseInt(e.target.value) || 0})}
-                         style={{
-                           flex: 1,
-                           padding: '10px',
-                           border: `1px solid var(--input-border)`,
-                           borderRadius: 4,
-                           fontSize: 16,
-                           background: 'var(--input-bg)',
-                           color: 'var(--text-primary)'
-                         }}
-                         placeholder="Enter percentage (0-100)"
-                       />
-                       <span style={{ fontSize: 14, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-                         % remaining
-                       </span>
-                     </div>
-                     <div style={{ marginTop: 5, fontSize: 12, color: 'var(--text-secondary)' }}>
-                       <div>100% = Unopened/New</div>
-                       <div>0% = Used Up</div>
-                       <div>Enter any percentage between 0-100</div>
-                     </div>
-                   </div>
-
-                               <div>
-                  <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                    Expiry Date
-                  </label>
-                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <input
-                      type="text"
-                      name="expiry"
-                      value={editingItem.expiry || ''}
-                      onChange={handleDateInputChange}
-                      placeholder="YYYY-MM-DD"
-                      style={{
-                        width: '100%',
-                        padding: '10px',
-                        paddingRight: '40px',
-                        border: `1px solid var(--input-border)`,
-                        borderRadius: 4,
-                        fontSize: 16,
-                        background: 'var(--input-bg)',
-                        color: 'var(--text-primary)'
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleDateButtonClick('expiry')}
-                      style={{
-                        position: 'absolute',
-                        right: '5px',
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: '5px',
-                        color: 'var(--text-secondary)'
-                      }}
-                      title="Open calendar"
-                    >
-                      📅
-                    </button>
-                  </div>
+                <div style={{ marginTop: 5, fontSize: 12, color: 'var(--text-secondary)' }}>
+                  <div>100% = Unopened/New</div>
+                  <div>0% = Used Up</div>
+                  <div>Enter any percentage between 0-100</div>
                 </div>
-
-                                <div>
-                   <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                     Purchase Date
-                   </label>
-                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                     <input
-                       type="text"
-                       name="purchase_date"
-                       value={editingItem.purchase_date || ''}
-                       onChange={handleDateInputChange}
-                       placeholder="YYYY-MM-DD"
-                       style={{
-                         width: '100%',
-                         padding: '10px',
-                         paddingRight: '40px',
-                         border: `1px solid var(--input-border)`,
-                         borderRadius: 4,
-                         fontSize: 16,
-                         background: 'var(--input-bg)',
-                         color: 'var(--text-primary)'
-                       }}
-                     />
-                     <button
-                       type="button"
-                       onClick={() => handleDateButtonClick('purchase_date')}
-                       style={{
-                         position: 'absolute',
-                         right: '5px',
-                         background: 'none',
-                         border: 'none',
-                         cursor: 'pointer',
-                         padding: '5px',
-                         color: 'var(--text-secondary)'
-                       }}
-                       title="Open calendar"
-                     >
-                       📅
-                     </button>
-                   </div>
-                 </div>
-
-                 <div>
-                   <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                     Tags (Optional)
-                   </label>
-                   <input
-                     type="text"
-                     value={editingItem.tags || ''}
-                     onChange={(e) => setEditingItem({...editingItem, tags: e.target.value})}
-                     placeholder="e.g., organic, gluten-free, favorite"
-                     style={{
-                       width: '100%',
-                       padding: '10px',
-                       border: `1px solid var(--input-border)`,
-                       borderRadius: 4,
-                       fontSize: 16,
-                       background: 'var(--input-bg)',
-                       color: 'var(--text-primary)'
-                     }}
-                   />
-                 </div>
-
-                 <div>
-                   <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                     Notes
-                   </label>
-                   <textarea
-                     value={editingItem.notes || ''}
-                     onChange={(e) => setEditingItem({...editingItem, notes: e.target.value})}
-                     rows={3}
-                     style={{
-                       width: '100%',
-                       padding: '10px',
-                       border: `1px solid var(--input-border)`,
-                       borderRadius: 4,
-                       fontSize: 16,
-                       resize: 'vertical',
-                       background: 'var(--input-bg)',
-                       color: 'var(--text-primary)'
-                     }}
-                   />
-                 </div>
-             </div>
-
-                           <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-                <button
-                  onClick={() => updateItem(editingItem)}
-                  style={{
-                    padding: '10px 20px',
-                    background: 'var(--primary)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: 4,
-                    cursor: 'pointer',
-                    fontSize: 14
-                  }}
-                >
-                  Save Changes
-                </button>
-                <button
-                  onClick={() => setEditingItem(null)}
-                  style={{
-                    padding: '10px 20px',
-                    background: 'var(--secondary)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: 4,
-                    cursor: 'pointer',
-                    fontSize: 14
-                  }}
-                >
-                  Cancel
-                </button>
               </div>
-           </div>
-         </div>
-       )}
-     </div>
-   );
- } 
+
+              <div>
+                <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                  Expiry Date
+                </label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    name="expiry"
+                    value={editingItem.expiry || ''}
+                    onChange={handleDateInputChange}
+                    placeholder="YYYY-MM-DD"
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      paddingRight: '40px',
+                      border: `1px solid var(--input-border)`,
+                      borderRadius: 4,
+                      fontSize: 16,
+                      background: 'var(--input-bg)',
+                      color: 'var(--text-primary)'
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleDateButtonClick('expiry')}
+                    style={{
+                      position: 'absolute',
+                      right: '5px',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '5px',
+                      color: 'var(--text-secondary)'
+                    }}
+                    title="Open calendar"
+                  >
+                    📅
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                  Purchase Date
+                </label>
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    name="purchase_date"
+                    value={editingItem.purchase_date || ''}
+                    onChange={handleDateInputChange}
+                    placeholder="YYYY-MM-DD"
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      paddingRight: '40px',
+                      border: `1px solid var(--input-border)`,
+                      borderRadius: 4,
+                      fontSize: 16,
+                      background: 'var(--input-bg)',
+                      color: 'var(--text-primary)'
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleDateButtonClick('purchase_date')}
+                    style={{
+                      position: 'absolute',
+                      right: '5px',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '5px',
+                      color: 'var(--text-secondary)'
+                    }}
+                    title="Open calendar"
+                  >
+                    📅
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                  Tags (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={editingItem.tags || ''}
+                  onChange={(e) => setEditingItem({...editingItem, tags: e.target.value})}
+                  placeholder="e.g., organic, gluten-free, favorite"
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: `1px solid var(--input-border)`,
+                    borderRadius: 4,
+                    fontSize: 16,
+                    background: 'var(--input-bg)',
+                    color: 'var(--text-primary)'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                  Notes
+                </label>
+                <textarea
+                  value={editingItem.notes || ''}
+                  onChange={(e) => setEditingItem({...editingItem, notes: e.target.value})}
+                  rows={3}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: `1px solid var(--input-border)`,
+                    borderRadius: 4,
+                    fontSize: 16,
+                    resize: 'vertical',
+                    background: 'var(--input-bg)',
+                    color: 'var(--text-primary)'
+                  }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+              <button
+                onClick={() => updateItem(editingItem)}
+                style={{
+                  padding: '10px 20px',
+                  background: 'var(--primary)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                  fontSize: 14
+                }}
+              >
+                Save Changes
+              </button>
+              <button
+                onClick={() => setEditingItem(null)}
+                style={{
+                  padding: '10px 20px',
+                  background: 'var(--secondary)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                  fontSize: 14
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

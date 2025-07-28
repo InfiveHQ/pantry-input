@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useAuth } from "../contexts/AuthContext";
+import { supabase } from "../lib/supabase";
 
 interface PantryItem {
   id: number;
@@ -19,6 +20,9 @@ interface PantryItem {
   barcode: string;
   image: string;
   scanned_at: string;
+  shopping_list_id?: number;
+  added_by?: string;
+  added_at?: string;
 }
 
 export default function ShoppingList() {
@@ -34,14 +38,37 @@ export default function ShoppingList() {
     }
     
     if (user) {
-      // For now, we'll load from localStorage. In the future, this could be from a database
-      const savedList = localStorage.getItem('shoppingList');
-      if (savedList) {
-        setShoppingList(JSON.parse(savedList));
-      }
-      setLoading(false);
+      fetchShoppingList();
     }
   }, [user, authLoading, router]);
+
+  const fetchShoppingList = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.error('No session found');
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch('/api/shopping-list', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setShoppingList(data);
+      } else {
+        console.error('Failed to fetch shopping list');
+      }
+    } catch (error) {
+      console.error('Error fetching shopping list:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Show loading while checking authentication
   if (authLoading) {
@@ -65,17 +92,62 @@ export default function ShoppingList() {
     return null;
   }
 
-  const removeFromShoppingList = (itemId: number) => {
-    const updatedList = shoppingList.filter(item => item.id !== itemId);
-    setShoppingList(updatedList);
-    localStorage.setItem('shoppingList', JSON.stringify(updatedList));
+  const removeFromShoppingList = async (shoppingListId: number) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        alert('Please log in to remove items from shopping list');
+        return;
+      }
+
+      const response = await fetch('/api/shopping-list', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ shoppingListId })
+      });
+
+      if (response.ok) {
+        setShoppingList(shoppingList.filter(item => item.shopping_list_id !== shoppingListId));
+      } else {
+        alert('Failed to remove item from shopping list');
+      }
+    } catch (error) {
+      console.error('Error removing item from shopping list:', error);
+      alert('Error removing item from shopping list');
+    }
   };
 
-  const clearShoppingList = () => {
+  const clearShoppingList = async () => {
     if (shoppingList.length === 0) return;
     if (confirm('Are you sure you want to clear your shopping list?')) {
-      setShoppingList([]);
-      localStorage.removeItem('shoppingList');
+              try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) {
+            alert('Please log in to clear shopping list');
+            return;
+          }
+
+          // Remove all items one by one
+          const deletePromises = shoppingList.map(item => 
+            fetch('/api/shopping-list', {
+              method: 'DELETE',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+              },
+              body: JSON.stringify({ shoppingListId: item.shopping_list_id })
+            })
+          );
+
+          await Promise.all(deletePromises);
+          setShoppingList([]);
+        } catch (error) {
+          console.error('Error clearing shopping list:', error);
+          alert('Error clearing shopping list');
+        }
     }
   };
 
@@ -259,21 +331,21 @@ export default function ShoppingList() {
 
                                  {/* Action Buttons */}
                  <div style={{ display: 'flex', gap: 10, marginTop: 15 }}>
-                   <button
-                     onClick={() => removeFromShoppingList(item.id)}
-                     style={{
-                       padding: '8px 16px',
-                       background: '#dc3545',
-                       color: 'white',
-                       border: 'none',
-                       borderRadius: 4,
-                       cursor: 'pointer',
-                       fontSize: 13,
-                       width: '100%'
-                     }}
-                   >
-                     Remove from List
-                   </button>
+                                       <button
+                      onClick={() => removeFromShoppingList(item.shopping_list_id!)}
+                      style={{
+                        padding: '8px 16px',
+                        background: '#dc3545',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: 4,
+                        cursor: 'pointer',
+                        fontSize: 13,
+                        width: '100%'
+                      }}
+                    >
+                      Remove from List
+                    </button>
                  </div>
               </div>
             ))}
