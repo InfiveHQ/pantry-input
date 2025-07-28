@@ -99,6 +99,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         // Create profile via API
         try {
+          console.log('Attempting to create profile for user:', data.user.id);
+          
           const response = await fetch('/api/create-profile', {
             method: 'POST',
             headers: {
@@ -112,10 +114,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             })
           });
 
+          console.log('Profile creation response status:', response.status);
+          
           if (response.ok) {
-            console.log('Profile created successfully');
+            const result = await response.json();
+            console.log('Profile created successfully:', result);
           } else {
-            console.error('Failed to create profile');
+            const error = await response.json();
+            console.error('Failed to create profile:', error);
           }
         } catch (profileError) {
           console.error('Profile creation error:', profileError);

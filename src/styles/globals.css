@@ -1,28 +1,87 @@
 @import "tailwindcss";
 
 :root {
+  /* Light mode variables */
   --background: #ffffff;
   --foreground: #171717;
+  --card-bg: #ffffff;
+  --card-border: #e0e0e0;
+  --primary: #007bff;
+  --primary-hover: #0056b3;
+  --secondary: #6c757d;
+  --success: #28a745;
+  --warning: #ffc107;
+  --danger: #dc3545;
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --text-muted: #999999;
+  --border: #e0e0e0;
+  --input-bg: #ffffff;
+  --input-border: #ddd;
+  --modal-bg: #ffffff;
+  --modal-overlay: rgba(0, 0, 0, 0.5);
+  --stats-card-bg: #f8f9fa;
+  --stats-card-active: #e3f2fd;
+  --expiring-week-bg: #fff3e0;
+  --expiring-week-border: #f57c00;
+  --expiring-3-days-bg: #fff8e1;
+  --expiring-3-days-border: #ff9800;
+  --expiring-today-bg: #ffebee;
+  --expiring-today-border: #f44336;
+  --expired-bg: #ffebee;
+  --expired-border: #d32f2f;
+  --finished-bg: #e8f5e8;
+  --finished-border: #28a745;
+  --location-bg: #e8f5e8;
+  --filter-bg: #fafafa;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.dark {
+  /* Dark mode variables */
+  --background: #1a1a1a;
+  --foreground: #ffffff;
+  --card-bg: #2d2d2d;
+  --card-border: #404040;
+  --primary: #3b82f6;
+  --primary-hover: #2563eb;
+  --secondary: #6b7280;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --text-primary: #ffffff;
+  --text-secondary: #d1d5db;
+  --text-muted: #9ca3af;
+  --border: #404040;
+  --input-bg: #374151;
+  --input-border: #4b5563;
+  --modal-bg: #2d2d2d;
+  --modal-overlay: rgba(0, 0, 0, 0.7);
+  --stats-card-bg: #374151;
+  --stats-card-active: #1e3a8a;
+  --expiring-week-bg: #451a03;
+  --expiring-week-border: #f97316;
+  --expiring-3-days-bg: #451a03;
+  --expiring-3-days-border: #f59e0b;
+  --expiring-today-bg: #7f1d1d;
+  --expiring-today-border: #ef4444;
+  --expired-bg: #7f1d1d;
+  --expired-border: #dc2626;
+  --finished-bg: #064e3b;
+  --finished-border: #059669;
+  --location-bg: #064e3b;
+  --filter-bg: #374151;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Smooth transitions for theme changes */
+* {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 
 

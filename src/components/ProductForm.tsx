@@ -92,6 +92,47 @@ export default function ProductForm({ barcode, productData }: {
     }));
   };
 
+  const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    // Allow empty value or valid date format (YYYY-MM-DD)
+    if (value === '' || /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
+  };
+
+  const handleDateButtonClick = (fieldName: string) => {
+    const input = document.querySelector(`input[name="${fieldName}"]`) as HTMLInputElement;
+    if (input) {
+      // For desktop browsers, create a temporary date input to trigger the picker
+      const tempInput = document.createElement('input');
+      tempInput.type = 'date';
+      tempInput.style.position = 'absolute';
+      tempInput.style.left = '-9999px';
+      tempInput.style.top = '-9999px';
+      
+      // Add event listener to copy the selected date back to the original input
+      tempInput.addEventListener('change', (e) => {
+        const target = e.target as HTMLInputElement;
+        if (target.value) {
+          input.value = target.value;
+          // Trigger the change event on the original input
+          const event = new Event('input', { bubbles: true });
+          input.dispatchEvent(event);
+        }
+        // Clean up
+        document.body.removeChild(tempInput);
+      });
+      
+      // Add to DOM and trigger the picker
+      document.body.appendChild(tempInput);
+      tempInput.focus();
+      tempInput.click();
+    }
+  };
+
   const handleBarcodeImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -731,7 +772,7 @@ export default function ProductForm({ barcode, productData }: {
         </div>
 
         {/* Product Details */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 15 }}>
+        <div style={{ display: 'grid', gap: 15 }}>
           <div>
             <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
               Name *
@@ -811,23 +852,34 @@ export default function ProductForm({ barcode, productData }: {
 
           <div>
             <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
-              Completion % (Optional)
+              How much left (%) (Optional)
             </label>
-            <input
-              type="number"
-              name="completion"
-              value={formData.completion}
-              onChange={handleInputChange}
-              min="0"
-              max="100"
-              style={{
-                width: '100%',
-                padding: '10px',
-                border: '1px solid #ddd',
-                borderRadius: 4,
-                fontSize: 16
-              }}
-            />
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <input
+                type="number"
+                name="completion"
+                value={formData.completion}
+                onChange={handleInputChange}
+                min="0"
+                max="100"
+                placeholder="Enter percentage (0-100)"
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  border: '1px solid #ddd',
+                  borderRadius: 4,
+                  fontSize: 16
+                }}
+              />
+              <span style={{ fontSize: 14, color: '#666', whiteSpace: 'nowrap' }}>
+                % remaining
+              </span>
+            </div>
+            <div style={{ marginTop: 5, fontSize: 12, color: '#666' }}>
+              <div>100% = Unopened/New</div>
+              <div>0% = Used Up</div>
+              <div>Leave empty for new items</div>
+            </div>
           </div>
 
           <div>
@@ -857,38 +909,78 @@ export default function ProductForm({ barcode, productData }: {
             <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
               Purchase Date (Optional)
             </label>
-            <input
-              type="date"
-              name="purchase_date"
-              value={formData.purchase_date}
-              onChange={handleInputChange}
-              style={{
-                width: '100%',
-                padding: '10px',
-                border: '1px solid #ddd',
-                borderRadius: 4,
-                fontSize: 16
-              }}
-            />
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <input
+                type="text"
+                name="purchase_date"
+                value={formData.purchase_date}
+                onChange={handleDateInputChange}
+                placeholder="YYYY-MM-DD"
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  paddingRight: '40px',
+                  border: '1px solid #ddd',
+                  borderRadius: 4,
+                  fontSize: 16
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => handleDateButtonClick('purchase_date')}
+                style={{
+                  position: 'absolute',
+                  right: '5px',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '5px',
+                  color: '#666'
+                }}
+                title="Open calendar"
+              >
+                📅
+              </button>
+            </div>
           </div>
 
           <div>
             <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
               Expiry Date (Optional)
             </label>
-            <input
-              type="date"
-              name="expiry"
-              value={formData.expiry}
-              onChange={handleInputChange}
-              style={{
-                width: '100%',
-                padding: '10px',
-                border: '1px solid #ddd',
-                borderRadius: 4,
-                fontSize: 16
-              }}
-            />
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <input
+                type="text"
+                name="expiry"
+                value={formData.expiry}
+                onChange={handleDateInputChange}
+                placeholder="YYYY-MM-DD"
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  paddingRight: '40px',
+                  border: '1px solid #ddd',
+                  borderRadius: 4,
+                  fontSize: 16
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => handleDateButtonClick('expiry')}
+                style={{
+                  position: 'absolute',
+                  right: '5px',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '5px',
+                  color: '#666'
+                }}
+                title="Open calendar"
+              >
+                📅
+              </button>
+            </div>
           </div>
         </div>
 
