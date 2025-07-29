@@ -92,47 +92,6 @@ export default function ProductForm({ barcode, productData }: {
     }));
   };
 
-  const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    // Allow empty value or valid date format (YYYY-MM-DD)
-    if (value === '' || /^\d{4}-\d{2}-\d{2}$/.test(value)) {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    }
-  };
-
-  const handleDateButtonClick = (fieldName: string) => {
-    const input = document.querySelector(`input[name="${fieldName}"]`) as HTMLInputElement;
-    if (input) {
-      // For desktop browsers, create a temporary date input to trigger the picker
-      const tempInput = document.createElement('input');
-      tempInput.type = 'date';
-      tempInput.style.position = 'absolute';
-      tempInput.style.left = '-9999px';
-      tempInput.style.top = '-9999px';
-      
-      // Add event listener to copy the selected date back to the original input
-      tempInput.addEventListener('change', (e) => {
-        const target = e.target as HTMLInputElement;
-        if (target.value) {
-          input.value = target.value;
-          // Trigger the change event on the original input
-          const event = new Event('input', { bubbles: true });
-          input.dispatchEvent(event);
-        }
-        // Clean up
-        document.body.removeChild(tempInput);
-      });
-      
-      // Add to DOM and trigger the picker
-      document.body.appendChild(tempInput);
-      tempInput.focus();
-      tempInput.click();
-    }
-  };
-
   const handleBarcodeImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -470,20 +429,22 @@ export default function ProductForm({ barcode, productData }: {
        padding: 20, 
        maxWidth: 600, 
        margin: '0 auto',
-       paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 20px))' // Extra bottom padding for mobile
+       paddingBottom: 'calc(20px + env(safe-area-inset-bottom, 20px))', // Extra bottom padding for mobile
+       background: 'var(--background)',
+       color: 'var(--text-primary)'
      }}>
-       <h2 style={{ textAlign: 'center', marginBottom: 30, color: '#333' }}>Add Pantry Item</h2>
+       <h2 style={{ textAlign: 'center', marginBottom: 30, color: 'var(--text-primary)' }}>Add Pantry Item</h2>
       
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
         {/* Image Capture Section */}
         <div style={{ 
-          border: '2px dashed #ccc', 
+          border: '2px dashed var(--border)', 
           padding: 20, 
           borderRadius: 8, 
           textAlign: 'center',
           marginBottom: 20
         }}>
-          <h3 style={{ marginBottom: 15 }}>Product Image</h3>
+          <h3 style={{ marginBottom: 15, color: 'var(--text-primary)' }}>Product Image</h3>
           
           {capturedImage ? (
             <div>
@@ -512,7 +473,7 @@ export default function ProductForm({ barcode, productData }: {
                 }}
                 style={{
                   padding: '8px 16px',
-                  background: '#dc3545',
+                  background: 'var(--danger)',
                   color: 'white',
                   border: 'none',
                   borderRadius: 4,
@@ -547,7 +508,7 @@ export default function ProductForm({ barcode, productData }: {
                   onClick={startCamera}
                   style={{
                     padding: '8px 16px',
-                    background: '#007bff',
+                    background: 'var(--primary)',
                     color: 'white',
                     border: 'none',
                     borderRadius: 4,
@@ -563,7 +524,7 @@ export default function ProductForm({ barcode, productData }: {
                   }}
                   style={{
                     padding: '8px 16px',
-                    background: '#dc3545',
+                    background: 'var(--danger)',
                     color: 'white',
                     border: 'none',
                     borderRadius: 4,
@@ -581,7 +542,7 @@ export default function ProductForm({ barcode, productData }: {
                 onClick={startCamera}
                 style={{
                   padding: '12px 24px',
-                  background: '#007bff',
+                  background: 'var(--primary)',
                   color: 'white',
                   border: 'none',
                   borderRadius: 4,
@@ -592,7 +553,7 @@ export default function ProductForm({ barcode, productData }: {
               >
                 📷 Take Photo
               </button>
-              <div style={{ fontSize: 14, color: '#666' }}>
+              <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
                 Capture a photo of the product for your records
               </div>
             </div>
@@ -607,7 +568,7 @@ export default function ProductForm({ barcode, productData }: {
              left: 0,
              right: 0,
              bottom: 0,
-             background: 'rgba(0,0,0,0.8)',
+             background: 'var(--modal-overlay)',
              display: 'flex',
              flexDirection: 'column',
              alignItems: 'center',
@@ -616,7 +577,7 @@ export default function ProductForm({ barcode, productData }: {
              paddingBottom: 'env(safe-area-inset-bottom, 20px)' // Add safe area for mobile
            }}>
              <div style={{ 
-               background: 'white', 
+               background: 'var(--modal-bg)', 
                padding: 20, 
                borderRadius: 8, 
                maxWidth: 400,
@@ -624,17 +585,24 @@ export default function ProductForm({ barcode, productData }: {
                maxHeight: '80vh',
                overflow: 'auto'
              }}>
-               <h3 style={{ marginBottom: 15 }}>Take Product Photo</h3>
+               <h3 style={{ marginBottom: 15, color: 'var(--text-primary)' }}>Take Product Photo</h3>
                
                {/* Camera Selection */}
                {cameras.length > 1 && (
                  <div style={{ marginBottom: 15 }}>
-                   <label htmlFor="camera-select" style={{ marginRight: 8 }}>Camera:</label>
+                   <label htmlFor="camera-select" style={{ marginRight: 8, color: 'var(--text-primary)' }}>Camera:</label>
                    <select
                      id="camera-select"
                      value={selectedCamera}
                      onChange={e => setSelectedCamera(e.target.value)}
-                     style={{ fontSize: 16, padding: 4 }}
+                     style={{ 
+                       fontSize: 16, 
+                       padding: 4,
+                       background: 'var(--input-bg)',
+                       color: 'var(--text-primary)',
+                       border: '1px solid var(--input-border)',
+                       borderRadius: 4
+                     }}
                    >
                      {cameras.map(cam => (
                        <option key={cam.deviceId} value={cam.deviceId}>
@@ -666,7 +634,7 @@ export default function ProductForm({ barcode, productData }: {
                    onClick={captureImage}
                    style={{
                      padding: '12px 24px',
-                     background: '#28a745',
+                     background: 'var(--success)',
                      color: 'white',
                      border: 'none',
                      borderRadius: 8,
@@ -691,7 +659,7 @@ export default function ProductForm({ barcode, productData }: {
                    }}
                    style={{
                      padding: '12px 24px',
-                     background: '#6c757d',
+                     background: 'var(--secondary)',
                      color: 'white',
                      border: 'none',
                      borderRadius: 8,
@@ -710,12 +678,12 @@ export default function ProductForm({ barcode, productData }: {
 
                  {/* Barcode Section */}
          <div style={{ 
-           border: '1px solid #ddd', 
+           border: '1px solid var(--border)', 
            padding: 15, 
            borderRadius: 8,
            marginBottom: 20
          }}>
-           <h3 style={{ marginBottom: 15 }}>Barcode</h3>
+           <h3 style={{ marginBottom: 15, color: 'var(--text-primary)' }}>Barcode</h3>
            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 10 }}>
              <input
                type="text"
@@ -726,9 +694,11 @@ export default function ProductForm({ barcode, productData }: {
                style={{
                  flex: 1,
                  padding: '10px',
-                 border: '1px solid #ddd',
+                 border: '1px solid var(--input-border)',
                  borderRadius: 4,
-                 fontSize: 16
+                 fontSize: 16,
+                 background: 'var(--input-bg)',
+                 color: 'var(--text-primary)'
                }}
              />
              <button
@@ -737,7 +707,7 @@ export default function ProductForm({ barcode, productData }: {
                disabled={isLoadingProduct}
                style={{
                  padding: '10px 20px',
-                 background: isLoadingProduct ? '#6c757d' : '#17a2b8',
+                 background: isLoadingProduct ? 'var(--secondary)' : '#17a2b8',
                  color: 'white',
                  border: 'none',
                  borderRadius: 4,
@@ -749,8 +719,8 @@ export default function ProductForm({ barcode, productData }: {
            </div>
            {isLoadingProduct && (
              <div style={{ 
-               background: '#e3f2fd', 
-               color: '#1976d2', 
+               background: 'var(--stats-card-active)', 
+               color: 'var(--primary)', 
                padding: 10, 
                borderRadius: 4, 
                marginBottom: 10,
@@ -759,7 +729,7 @@ export default function ProductForm({ barcode, productData }: {
                🔍 Looking up product details...
              </div>
            )}
-          <div style={{ fontSize: 14, color: '#666', marginBottom: 10 }}>
+          <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 10 }}>
             Or upload a barcode image:
           </div>
           <input
@@ -774,7 +744,7 @@ export default function ProductForm({ barcode, productData }: {
         {/* Product Details */}
         <div style={{ display: 'grid', gap: 15 }}>
           <div>
-            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
+            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
               Name *
             </label>
             <input
@@ -786,15 +756,17 @@ export default function ProductForm({ barcode, productData }: {
               style={{
                 width: '100%',
                 padding: '10px',
-                border: '1px solid #ddd',
+                border: '1px solid var(--input-border)',
                 borderRadius: 4,
-                fontSize: 16
+                fontSize: 16,
+                background: 'var(--input-bg)',
+                color: 'var(--text-primary)'
               }}
             />
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
+            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
               Brand
             </label>
             <input
@@ -805,15 +777,17 @@ export default function ProductForm({ barcode, productData }: {
               style={{
                 width: '100%',
                 padding: '10px',
-                border: '1px solid #ddd',
+                border: '1px solid var(--input-border)',
                 borderRadius: 4,
-                fontSize: 16
+                fontSize: 16,
+                background: 'var(--input-bg)',
+                color: 'var(--text-primary)'
               }}
             />
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
+            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
               Category
             </label>
             <input
@@ -824,15 +798,17 @@ export default function ProductForm({ barcode, productData }: {
               style={{
                 width: '100%',
                 padding: '10px',
-                border: '1px solid #ddd',
+                border: '1px solid var(--input-border)',
                 borderRadius: 4,
-                fontSize: 16
+                fontSize: 16,
+                background: 'var(--input-bg)',
+                color: 'var(--text-primary)'
               }}
             />
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
+            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
               Quantity
             </label>
             <input
@@ -843,15 +819,17 @@ export default function ProductForm({ barcode, productData }: {
               style={{
                 width: '100%',
                 padding: '10px',
-                border: '1px solid #ddd',
+                border: '1px solid var(--input-border)',
                 borderRadius: 4,
-                fontSize: 16
+                fontSize: 16,
+                background: 'var(--input-bg)',
+                color: 'var(--text-primary)'
               }}
             />
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
+            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
               How much left (%) (Optional)
             </label>
             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
@@ -866,16 +844,18 @@ export default function ProductForm({ barcode, productData }: {
                 style={{
                   flex: 1,
                   padding: '10px',
-                  border: '1px solid #ddd',
+                  border: '1px solid var(--input-border)',
                   borderRadius: 4,
-                  fontSize: 16
+                  fontSize: 16,
+                  background: 'var(--input-bg)',
+                  color: 'var(--text-primary)'
                 }}
               />
-              <span style={{ fontSize: 14, color: '#666', whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: 14, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
                 % remaining
               </span>
             </div>
-            <div style={{ marginTop: 5, fontSize: 12, color: '#666' }}>
+            <div style={{ marginTop: 5, fontSize: 12, color: 'var(--text-secondary)' }}>
               <div>100% = Unopened/New</div>
               <div>0% = Used Up</div>
               <div>Leave empty for new items</div>
@@ -883,7 +863,7 @@ export default function ProductForm({ barcode, productData }: {
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
+            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
               Location
             </label>
             <select
@@ -893,9 +873,11 @@ export default function ProductForm({ barcode, productData }: {
               style={{
                 width: '100%',
                 padding: '10px',
-                border: '1px solid #ddd',
+                border: '1px solid var(--input-border)',
                 borderRadius: 4,
-                fontSize: 16
+                fontSize: 16,
+                background: 'var(--input-bg)',
+                color: 'var(--text-primary)'
               }}
             >
               <option value="">-- Select Location --</option>
@@ -906,86 +888,50 @@ export default function ProductForm({ barcode, productData }: {
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
+            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
               Purchase Date (Optional)
             </label>
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <input
-                type="text"
-                name="purchase_date"
-                value={formData.purchase_date}
-                onChange={handleDateInputChange}
-                placeholder="YYYY-MM-DD"
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  paddingRight: '40px',
-                  border: '1px solid #ddd',
-                  borderRadius: 4,
-                  fontSize: 16
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => handleDateButtonClick('purchase_date')}
-                style={{
-                  position: 'absolute',
-                  right: '5px',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '5px',
-                  color: '#666'
-                }}
-                title="Open calendar"
-              >
-                📅
-              </button>
-            </div>
+            <input
+              type="date"
+              name="purchase_date"
+              value={formData.purchase_date}
+              onChange={handleInputChange}
+              style={{
+                width: '100%',
+                padding: '10px',
+                border: '1px solid var(--input-border)',
+                borderRadius: 4,
+                fontSize: 16,
+                background: 'var(--input-bg)',
+                color: 'var(--text-primary)'
+              }}
+            />
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
+            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
               Expiry Date (Optional)
             </label>
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <input
-                type="text"
-                name="expiry"
-                value={formData.expiry}
-                onChange={handleDateInputChange}
-                placeholder="YYYY-MM-DD"
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  paddingRight: '40px',
-                  border: '1px solid #ddd',
-                  borderRadius: 4,
-                  fontSize: 16
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => handleDateButtonClick('expiry')}
-                style={{
-                  position: 'absolute',
-                  right: '5px',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '5px',
-                  color: '#666'
-                }}
-                title="Open calendar"
-              >
-                📅
-              </button>
-            </div>
+            <input
+              type="date"
+              name="expiry"
+              value={formData.expiry}
+              onChange={handleInputChange}
+              style={{
+                width: '100%',
+                padding: '10px',
+                border: '1px solid var(--input-border)',
+                borderRadius: 4,
+                fontSize: 16,
+                background: 'var(--input-bg)',
+                color: 'var(--text-primary)'
+              }}
+            />
           </div>
         </div>
 
         <div>
-          <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
+          <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
             Tags (Optional)
           </label>
           <input
@@ -997,15 +943,17 @@ export default function ProductForm({ barcode, productData }: {
             style={{
               width: '100%',
               padding: '10px',
-              border: '1px solid #ddd',
+              border: '1px solid var(--input-border)',
               borderRadius: 4,
-              fontSize: 16
+              fontSize: 16,
+              background: 'var(--input-bg)',
+              color: 'var(--text-primary)'
             }}
           />
         </div>
 
         <div>
-          <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold' }}>
+          <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
             Notes (Optional)
           </label>
           <textarea
@@ -1017,10 +965,12 @@ export default function ProductForm({ barcode, productData }: {
             style={{
               width: '100%',
               padding: '10px',
-              border: '1px solid #ddd',
+              border: '1px solid var(--input-border)',
               borderRadius: 4,
               fontSize: 16,
-              resize: 'vertical'
+              resize: 'vertical',
+              background: 'var(--input-bg)',
+              color: 'var(--text-primary)'
             }}
           />
         </div>
@@ -1030,7 +980,7 @@ export default function ProductForm({ barcode, productData }: {
           disabled={isSubmitting}
           style={{
             padding: '15px 30px',
-            background: isSubmitting ? '#6c757d' : '#28a745',
+            background: isSubmitting ? 'var(--secondary)' : 'var(--success)',
             color: 'white',
             border: 'none',
             borderRadius: 4,

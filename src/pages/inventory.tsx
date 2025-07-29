@@ -31,49 +31,11 @@ export default function Inventory() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
-  const [sortBy, setSortBy] = useState("name");
-  const [showUsedItems, setShowUsedItems] = useState(false);
+  const [sortBy, setSortBy] = useState("scanned_at");
+  const [showUsedItems, setShowUsedItems] = useState(true);
   const [expiryFilter, setExpiryFilter] = useState(""); // "expired", "expiring-soon", or ""
   const [editingItem, setEditingItem] = useState<PantryItem | null>(null);
   const [locationTabsExpanded, setLocationTabsExpanded] = useState(false);
-
-  const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    // Allow empty value or valid date format (YYYY-MM-DD)
-    if (value === '' || /^\d{4}-\d{2}-\d{2}$/.test(value)) {
-      setEditingItem(prev => prev ? { ...prev, [name]: value } : null);
-    }
-  };
-
-  const handleDateButtonClick = (fieldName: string) => {
-    const input = document.querySelector(`input[name="${fieldName}"]`) as HTMLInputElement;
-    if (input) {
-      // For desktop browsers, create a temporary date input to trigger the picker
-      const tempInput = document.createElement('input');
-      tempInput.type = 'date';
-      tempInput.style.position = 'absolute';
-      tempInput.style.left = '-9999px';
-      tempInput.style.top = '-9999px';
-      
-      // Add event listener to copy the selected date back to the original input
-      tempInput.addEventListener('change', (e) => {
-        const target = e.target as HTMLInputElement;
-        if (target.value) {
-          input.value = target.value;
-          // Trigger the change event on the original input
-          const event = new Event('input', { bubbles: true });
-          input.dispatchEvent(event);
-        }
-        // Clean up
-        document.body.removeChild(tempInput);
-      });
-      
-      // Add to DOM and trigger the picker
-      document.body.appendChild(tempInput);
-      tempInput.focus();
-      tempInput.click();
-    }
-  };
 
   const locations = [
     "Shelf Top Small",
@@ -270,7 +232,7 @@ export default function Inventory() {
       // For all other tabs, apply the showUsedItems filter
       const matchesUsedStatus = expiryFilter === "finished" ? 
         true : // Show all items when on "Finished" tab
-        showUsedItems || (item.completion === null || item.completion > 0);
+        !showUsedItems || (item.completion === null || item.completion > 0);
         
       const matchesExpiryFilter = !expiryFilter || 
                                  (expiryFilter === "finished" ? item.completion === 0 : 
@@ -287,6 +249,8 @@ export default function Inventory() {
           return a.name.localeCompare(b.name);
         case 'expiry':
           return new Date(a.expiry || '9999-12-31').getTime() - new Date(b.expiry || '9999-12-31').getTime();
+        case 'purchase_date':
+          return new Date(b.purchase_date || '9999-12-31').getTime() - new Date(a.purchase_date || '9999-12-31').getTime();
         case 'scanned_at':
           return new Date(b.scanned_at).getTime() - new Date(a.scanned_at).getTime();
         case 'location':
@@ -605,6 +569,7 @@ export default function Inventory() {
            >
              <option value="name">Name</option>
              <option value="expiry">Expiry</option>
+             <option value="purchase_date">Purchased</option>
              <option value="scanned_at">Added</option>
              <option value="location">Location</option>
            </select>
@@ -618,7 +583,7 @@ export default function Inventory() {
              style={{ width: 16, height: 16 }}
            />
            <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
-             Show all
+             Exclude Used
            </span>
          </div>
        </div>
@@ -716,11 +681,11 @@ export default function Inventory() {
                 item.completion === 0 ? 'Used' :
                 `${item.completion}% remaining`
               }</div>
-              {item.expiry && (
-                <div><strong>Expires:</strong> {new Date(item.expiry).toLocaleDateString()}</div>
-              )}
               {item.purchase_date && (
                 <div><strong>Purchased:</strong> {new Date(item.purchase_date).toLocaleDateString()}</div>
+              )}
+              {item.expiry && (
+                <div><strong>Expires:</strong> {new Date(item.expiry).toLocaleDateString()}</div>
               )}
               {item.notes && (
                 <div><strong>Notes:</strong> {item.notes}</div>
@@ -966,82 +931,42 @@ export default function Inventory() {
                 <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
                   Expiry Date
                 </label>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <input
-                    type="text"
-                    name="expiry"
-                    value={editingItem.expiry || ''}
-                    onChange={handleDateInputChange}
-                    placeholder="YYYY-MM-DD"
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      paddingRight: '40px',
-                      border: `1px solid var(--input-border)`,
-                      borderRadius: 4,
-                      fontSize: 16,
-                      background: 'var(--input-bg)',
-                      color: 'var(--text-primary)'
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleDateButtonClick('expiry')}
-                    style={{
-                      position: 'absolute',
-                      right: '5px',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: '5px',
-                      color: 'var(--text-secondary)'
-                    }}
-                    title="Open calendar"
-                  >
-                    📅
-                  </button>
-                </div>
+                <input
+                  type="date"
+                  name="expiry"
+                  value={editingItem.expiry || ''}
+                  onChange={(e) => setEditingItem({...editingItem, expiry: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: `1px solid var(--input-border)`,
+                    borderRadius: 4,
+                    fontSize: 16,
+                    background: 'var(--input-bg)',
+                    color: 'var(--text-primary)'
+                  }}
+                />
               </div>
 
               <div>
                 <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
                   Purchase Date
                 </label>
-                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                  <input
-                    type="text"
-                    name="purchase_date"
-                    value={editingItem.purchase_date || ''}
-                    onChange={handleDateInputChange}
-                    placeholder="YYYY-MM-DD"
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      paddingRight: '40px',
-                      border: `1px solid var(--input-border)`,
-                      borderRadius: 4,
-                      fontSize: 16,
-                      background: 'var(--input-bg)',
-                      color: 'var(--text-primary)'
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleDateButtonClick('purchase_date')}
-                    style={{
-                      position: 'absolute',
-                      right: '5px',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: '5px',
-                      color: 'var(--text-secondary)'
-                    }}
-                    title="Open calendar"
-                  >
-                    📅
-                  </button>
-                </div>
+                <input
+                  type="date"
+                  name="purchase_date"
+                  value={editingItem.purchase_date || ''}
+                  onChange={(e) => setEditingItem({...editingItem, purchase_date: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    border: `1px solid var(--input-border)`,
+                    borderRadius: 4,
+                    fontSize: 16,
+                    background: 'var(--input-bg)',
+                    color: 'var(--text-primary)'
+                  }}
+                />
               </div>
 
               <div>

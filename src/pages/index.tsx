@@ -90,7 +90,7 @@ export default function Home() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8f9fa' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--background)' }}>
       <div style={{ padding: 20 }}>
         {showScanner ? (
           <BarcodeScanner 
@@ -101,11 +101,11 @@ export default function Home() {
           <div>
             <div style={{ textAlign: 'center', marginBottom: 30 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                <h1 style={{ color: '#333', margin: 0 }}>Pantry Input</h1>
+                <h1 style={{ color: 'var(--text-primary)', margin: 0 }}>Pantry Input</h1>
                 <div style={{ display: 'flex', gap: 10 }}>
                   <Link href="/inventory" style={{
                     padding: '10px 20px',
-                    background: '#17a2b8',
+                    background: 'var(--primary)',
                     color: 'white',
                     textDecoration: 'none',
                     borderRadius: 4,
@@ -115,7 +115,7 @@ export default function Home() {
                   </Link>
                   <Link href="/households" style={{
                     padding: '10px 20px',
-                    background: '#28a745',
+                    background: 'var(--success)',
                     color: 'white',
                     textDecoration: 'none',
                     borderRadius: 4,
@@ -127,7 +127,7 @@ export default function Home() {
                     onClick={handleSignOut}
                     style={{
                       padding: '10px 20px',
-                      background: '#dc3545',
+                      background: 'var(--danger)',
                       color: 'white',
                       border: 'none',
                       borderRadius: 4,
@@ -139,14 +139,14 @@ export default function Home() {
                   </button>
                 </div>
               </div>
-              <p style={{ color: '#666', marginBottom: 20 }}>
+              <p style={{ color: 'var(--text-secondary)', marginBottom: 20 }}>
                 Welcome, {user.email}! Add items to your pantry inventory
               </p>
               <button
                 onClick={() => setShowScanner(true)}
                 style={{
                   padding: '12px 24px',
-                  background: '#007bff',
+                  background: 'var(--primary)',
                   color: 'white',
                   border: 'none',
                   borderRadius: 4,
