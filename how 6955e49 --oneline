@@ -1,0 +1,51 @@
+[33m88662ae[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m Update ProductForm component
+[33m65b668a[m Build successful - ready for production deployment
+[33m0656f24[m Try smallbottle.svg for better icon proportions
+[33m6c5c270[m Try icon_phone.png for landing page icon - Change from android-chrome-192x192.png to icon_phone.png - Use 32x32px size for consistent visibility - Phone-specific icon may have better mobile proportions
+[33m0e9ee1e[m Try android-chrome-192x192.png icon for better proportions - Change landing page icon from home.png to android-chrome-192x192.png - Use 32x32px size for better visibility - Android Chrome icons typically have proper padding and safe zones
+[33md75df0b[m Improve PWA functionality and fix icon sizing - Change button text from 'Add to Home' to 'Install App' - Fix icon size using favicon-16x16.png at 24x24px for better proportions - Add PWA state detection and service worker refresh - Improve handling when app is removed from home screen - Add standalone mode detection for better PWA management
+[33mf61a004[m Fix PWA install button and improve landing page - Change icon from icon_transparent.png to favicon-32x32.png for better proportions - Remove duplicate floating PWA install button - Shorten button text from 'Add to Home Screen' to 'Add to Home' - Add proper PWA setup component with TypeScript types - Fix icon size issue where jug was covering the whole circle
+[33mb7e948e[m Add PWA functionality and fix TypeScript errors - Add PWA install component with proper TypeScript types - Update manifest.json with correct icon references - Add manual install button to landing page - Fix TypeScript errors in PWA components - Change Install App button to black styling for consistency
+[33m601892c[m Update landing page with dark mode support and improved styling - Replace house emoji with icon_transparent.png - Add dark mode theme adaptation for background, text, and containers - Change sign out button to black background - Improve welcome text typography with better font and bold styling - Fix email text visibility in dark mode
+[33m6955e49[m Add profile creation fixes and test pages
+[33mb03981d[m Fix barcode scanner constraints and improve date formatting
+[33m26ac62d[m Mobile optimization: smaller status tabs, collapsible location tabs, and floating action button for shopping list
+[33me2c5f4a[m Fix Multiple GoTrueClient instances warning and improve shopping list API error handling
+[33md6ca749[m Add comprehensive dark mode support with theme toggle and fix linting errors
+[33m4fabca0[m Fix profile creation and email confirmation issues - Restore API-based profile creation - Add better error logging to create-profile API - Create test endpoints for debugging - Fix email redirect URLs
+[33m0a0f3eb[m Add authentication protection to inventory page
+[33mc5ff08b[m Fix ESLint errors and build issues for deployment
+[33mab9b00f[m Add multi-user household functionality with email invitations - Fixed household-members API to properly send emails - Added household invitation system with Resend integration - Created test endpoints for email functionality - Added comprehensive documentation and setup guides - All household features ready for future implementation
+[33m1f1aab6[m Update inventory layout: compact stats, location tabs, uniform image sizing, and card centering
+[33m228d7c6[m Update global styles
+[33mc14d518[m Update pantry input application with inventory page and improvements
+[33m36fd31a[m Fix camera modal: add capture button and mobile safe area padding
+[33mcce6b57[m Add camera selection and improve back camera detection
+[33m4393d3f[m Fix camera issues and add image domain configuration
+[33ma46402f[m Fix TypeScript error
+[33m8cccb4d[m Fix ESLint errors
+[33m8feb321[m Update BarcodeScanner component and add tatus file
+[33mc50e667[m Fix build errors: add null checking to error page and fix useEffect dependencies
+[33mef2739f[m Fix ESLint errors for deployment - Remove unused debug variables and functions - Add ESLint disable comments for any types - Fix React Hook dependencies - Escape quotes in JSX
+[33m9cb7ac2[m Fix barcode scanner auto-population and clean up UI - Move product lookup to main page for better reliability - Pass product data directly to ProductForm - Remove debug buttons (Test Scan, Restart Camera) - Simplify scanner interface - Add loading states and better error handling
+[33mf856f20[m Update BarcodeScanner component and add git helper file
+[33m6bb0d68[m Fix TypeScript error - Remove onBarcodeScanned prop from ProductForm
+[33mbd19090[m Fix ESLint errors for deployment - Fix unescaped apostrophe in BarcodeScanner - Remove unused imports and variables - Fix useEffect dependencies
+[33m6ac5ae9[m Improve barcode scanner camera access and add manual entry fallback
+[33m8a57fa4[m Fix image upload and barcode scanning
+[33m9590064[m Upload captured images to Supabase Storage and sync public URL to Notion. Fix Notion sync for images. Improve mobile photo support.
+[33m52ad572[m Fix barcode scanning loop and camera modal issues - Fixed videoRef null error in camera modal - Improved barcode scanning loop with proper setTimeout - Added better error handling and logging for debugging
+[33m86e96d2[m Fix image display, numeric fields, barcode scanning, and Notion sync issues
+[33mab6eff0[m Update location dropdown to match Notion options and default to Unknown
+[33mf600783[m Make scanning frame a wide horizontal rectangle responsive to portrait/landscape orientation
+[33me440537[m Add visual scanning frame overlay with corner indicators and animated scanning line
+[33m5784174[m Add scanning feedback and timeout to BarcodeScanner
+[33m5fc9b63[m Fix: Pass onScan prop to BarcodeScanner to resolve build error
+[33m95305f5[m Fix ESLint/TS errors in BarcodeScanner: remove unused vars, add disables for any types
+[33m18434c0[m Implement live barcode scanning with @zxing/library
+[33mcac88a3[m Fix ESLint errors with unescaped quotes and unused parameters
+[33m2e3293a[m Replace barcode scanner with live camera interface
+[33ma67e4f8[m Fix Html5QrcodeScanner constructor missing parameter
+[33m1d5b687[m Fix TypeScript and ESLint errors for deployment
+[33m4084f27[m Add Notion sync functionality and fix property types
+[33m7808341[m Initial commit from Create Next App
