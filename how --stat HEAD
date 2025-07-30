@@ -1,0 +1,10 @@
+[33mb03981d[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m Fix barcode scanner constraints and improve date formatting
+[33m26ac62d[m Mobile optimization: smaller status tabs, collapsible location tabs, and floating action button for shopping list
+[33me2c5f4a[m Fix Multiple GoTrueClient instances warning and improve shopping list API error handling
+[33md6ca749[m Add comprehensive dark mode support with theme toggle and fix linting errors
+[33m4fabca0[m Fix profile creation and email confirmation issues - Restore API-based profile creation - Add better error logging to create-profile API - Create test endpoints for debugging - Fix email redirect URLs
+[33m0a0f3eb[m Add authentication protection to inventory page
+[33mc5ff08b[m Fix ESLint errors and build issues for deployment
+[33mab9b00f[m Add multi-user household functionality with email invitations - Fixed household-members API to properly send emails - Added household invitation system with Resend integration - Created test endpoints for email functionality - Added comprehensive documentation and setup guides - All household features ready for future implementation
+[33m1f1aab6[m Update inventory layout: compact stats, location tabs, uniform image sizing, and card centering
+[33m228d7c6[m Update global styles

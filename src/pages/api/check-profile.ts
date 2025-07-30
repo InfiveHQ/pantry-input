@@ -14,14 +14,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { user_id, email, first_name, last_name } = req.body;
 
-    console.log('Create-profile API called with:', { user_id, email, first_name, last_name });
+    console.log('Check-profile API called with:', { user_id, email, first_name, last_name });
 
     if (!user_id || !email) {
       console.error('Missing required fields:', { user_id, email });
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Check if profile already exists
+    // Check if profile exists
     const { data: existingProfile, error: checkError } = await supabase
       .from('profiles')
       .select('*')
@@ -29,21 +29,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .single();
 
     if (existingProfile) {
-      console.log('Profile already exists for user:', user_id);
+      console.log('Profile found for user:', user_id);
       return res.status(200).json({ 
         success: true, 
         profile: existingProfile,
-        message: 'Profile already exists'
+        exists: true,
+        message: 'Profile exists'
       });
     }
 
     if (checkError && checkError.code !== 'PGRST116') {
-      console.error('Error checking existing profile:', checkError);
-      return res.status(500).json({ error: 'Failed to check existing profile' });
+      console.error('Error checking profile:', checkError);
+      return res.status(500).json({ error: 'Failed to check profile' });
     }
 
-    // Create profile
-    const { data, error } = await supabase
+    // Profile doesn't exist, create it
+    console.log('Profile not found, creating new profile for user:', user_id);
+    
+    const { data: newProfile, error: createError } = await supabase
       .from('profiles')
       .insert({
         id: user_id,
@@ -56,28 +59,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .select()
       .single();
 
-    if (error) {
-      console.error('Profile creation error:', error);
-      
-      // Handle specific error cases
-      if (error.code === '23505') { // Unique constraint violation
-        return res.status(409).json({ 
-          error: 'Profile already exists',
-          details: 'A profile for this user already exists'
-        });
-      }
-      
+    if (createError) {
+      console.error('Profile creation error:', createError);
       return res.status(500).json({ 
         error: 'Failed to create profile',
-        details: error.message,
-        code: error.code
+        details: createError.message,
+        code: createError.code
       });
     }
 
-    console.log('Profile created successfully:', data);
-    return res.status(200).json({ success: true, profile: data });
+    console.log('Profile created successfully:', newProfile);
+    return res.status(200).json({ 
+      success: true, 
+      profile: newProfile,
+      exists: false,
+      message: 'Profile created'
+    });
   } catch (error) {
-    console.error('Create profile error:', error);
+    console.error('Check profile error:', error);
     return res.status(500).json({ 
       error: 'Internal server error',
       details: error instanceof Error ? error.message : 'Unknown error'

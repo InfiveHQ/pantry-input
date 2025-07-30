@@ -144,17 +144,31 @@ CREATE POLICY "Household members can manage pantry items" ON pantry_items
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO profiles (id, email, first_name, last_name, created_at, updated_at)
-  VALUES (
-    NEW.id, 
-    NEW.email, 
-    COALESCE(NEW.raw_user_meta_data->>'first_name', ''),
-    COALESCE(NEW.raw_user_meta_data->>'last_name', ''),
-    NOW(),
-    NOW()
-  );
+  -- Check if profile already exists to avoid conflicts
+  IF NOT EXISTS (SELECT 1 FROM profiles WHERE id = NEW.id) THEN
+    INSERT INTO profiles (id, email, first_name, last_name, created_at, updated_at)
+    VALUES (
+      NEW.id, 
+      NEW.email, 
+      COALESCE(NEW.raw_user_meta_data->>'first_name', ''),
+      COALESCE(NEW.raw_user_meta_data->>'last_name', ''),
+      NOW(),
+      NOW()
+    );
+    
+    -- Log successful profile creation
+    RAISE NOTICE 'Profile created for user: %', NEW.email;
+  ELSE
+    -- Log if profile already exists
+    RAISE NOTICE 'Profile already exists for user: %', NEW.email;
+  END IF;
   
   RETURN NEW;
+EXCEPTION
+  WHEN OTHERS THEN
+    -- Log any errors but don't fail the user creation
+    RAISE NOTICE 'Error creating profile for user %: %', NEW.email, SQLERRM;
+    RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 

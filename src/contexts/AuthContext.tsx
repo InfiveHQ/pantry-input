@@ -85,9 +85,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data.user) {
         console.log('User created successfully:', data.user.id);
         
-        // Create profile via API
+        // Wait a moment for the database trigger to potentially create the profile
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Check if profile was created by the trigger
         try {
-          const response = await fetch('/api/create-profile', {
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', data.user.id)
+            .single();
+          
+          if (profileData) {
+            console.log('Profile already exists (created by trigger):', profileData);
+            return; // Profile already exists, no need to create manually
+          }
+          
+          if (profileError && profileError.code !== 'PGRST116') {
+            console.error('Error checking profile:', profileError);
+          }
+        } catch (checkError) {
+          console.error('Error checking existing profile:', checkError);
+        }
+        
+        // Fallback: Create profile via API if trigger didn't work
+        try {
+          console.log('Creating profile via API fallback...');
+          const response = await fetch('/api/check-profile', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -101,9 +125,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           });
 
           if (response.ok) {
-            console.log('Profile created successfully');
+            const result = await response.json();
+            console.log('Profile check/creation result:', result);
           } else {
-            console.error('Failed to create profile');
+            const errorData = await response.json();
+            console.error('Failed to check/create profile via API:', errorData);
+            // Don't fail signup if profile creation fails - user can still use the app
           }
         } catch (profileError) {
           console.error('Profile creation error:', profileError);
@@ -118,13 +145,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       if (error) {
         console.error('Signin error:', error);
         throw error;
+      }
+      
+      // Check if user has a profile, create one if needed
+      if (data.user) {
+        console.log('User signed in successfully:', data.user.id);
+        
+        try {
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', data.user.id)
+            .single();
+          
+          if (!profileData && profileError?.code === 'PGRST116') {
+            console.log('No profile found for user, creating one...');
+            // Create profile for existing user
+            const response = await fetch('/api/check-profile', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                user_id: data.user.id,
+                email: data.user.email,
+                first_name: data.user.user_metadata?.first_name || '',
+                last_name: data.user.user_metadata?.last_name || ''
+              })
+            });
+            
+            if (response.ok) {
+              const result = await response.json();
+              console.log('Profile created for existing user:', result);
+            } else {
+              console.error('Failed to create profile for existing user');
+            }
+          } else if (profileData) {
+            console.log('Profile found for user:', profileData);
+          }
+        } catch (profileCheckError) {
+          console.error('Error checking profile during signin:', profileCheckError);
+        }
       }
     } catch (error) {
       console.error('Signin failed:', error);

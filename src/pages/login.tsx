@@ -14,6 +14,28 @@ export default function Login() {
   const { signUp, signIn } = useAuth();
   const router = useRouter();
 
+  // Check if email already exists
+  const checkEmailExists = async (email: string): Promise<boolean> => {
+    try {
+      const response = await fetch('/api/check-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email })
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        return result.exists;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error checking email:', error);
+      return false;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -22,6 +44,14 @@ export default function Login() {
 
     try {
       if (isSignUp) {
+        // Check if email already exists before attempting signup
+        const emailExists = await checkEmailExists(email);
+        if (emailExists) {
+          setError('An account with this email already exists. Please sign in instead.');
+          setLoading(false);
+          return;
+        }
+
         await signUp(email, password, firstName, lastName);
         setSuccess('Account created successfully! Please check your email for the confirmation link.');
         // Don't redirect - let them know to check email
@@ -35,16 +65,26 @@ export default function Login() {
       // Provide more user-friendly error messages
       let errorMessage = 'An error occurred. Please try again.';
       if (error instanceof Error) {
-        if (error.message.includes('Invalid login credentials')) {
+        const errorMsg = error.message.toLowerCase();
+        console.log('Error message:', error.message);
+        
+        if (errorMsg.includes('invalid login credentials')) {
           errorMessage = 'Invalid email or password. Please try again.';
-        } else if (error.message.includes('Email not confirmed')) {
+        } else if (errorMsg.includes('email not confirmed')) {
           errorMessage = 'Please check your email and click the confirmation link before signing in.';
-        } else if (error.message.includes('User already registered')) {
+        } else if (errorMsg.includes('user already registered') || 
+                   errorMsg.includes('already registered') ||
+                   errorMsg.includes('user already exists') ||
+                   errorMsg.includes('already exists')) {
           errorMessage = 'An account with this email already exists. Please sign in instead.';
-        } else if (error.message.includes('Password should be at least')) {
+        } else if (errorMsg.includes('password should be at least')) {
           errorMessage = 'Password must be at least 6 characters long.';
-        } else if (error.message.includes('Invalid email')) {
+        } else if (errorMsg.includes('invalid email')) {
           errorMessage = 'Please enter a valid email address.';
+        } else if (errorMsg.includes('signup_disabled')) {
+          errorMessage = 'Sign up is currently disabled. Please contact support.';
+        } else if (errorMsg.includes('too many requests')) {
+          errorMessage = 'Too many attempts. Please wait a moment and try again.';
         }
       }
       
