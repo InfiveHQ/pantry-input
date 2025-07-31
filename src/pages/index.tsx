@@ -19,6 +19,42 @@ export default function Home() {
   const [isMobile, setIsMobile] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string[]>([]);
 
+  // Global PWA event listener - setup immediately when component loads
+  useEffect(() => {
+    // Setup global beforeinstallprompt listener immediately
+    const globalHandler = (e: Event) => {
+      console.log('🎉 Global PWA install prompt triggered!');
+      e.preventDefault();
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+      setShowInstallButton(true);
+    };
+
+    // Add global event listener immediately
+    window.addEventListener('beforeinstallprompt', globalHandler);
+
+    // Also listen for the early event from _document.tsx
+    const earlyHandler = (e: Event) => {
+      console.log('🎉 Early PWA install prompt captured!');
+      const customEvent = e as CustomEvent;
+      setDeferredPrompt(customEvent.detail as BeforeInstallPromptEvent);
+      setShowInstallButton(true);
+    };
+
+    window.addEventListener('beforeinstallprompt-captured', earlyHandler as EventListener);
+
+    // Check if we already have a deferred prompt from the early listener
+    if ((window as Window & { deferredPrompt?: BeforeInstallPromptEvent }).deferredPrompt) {
+      console.log('🎉 Found existing deferred prompt from early listener!');
+      setDeferredPrompt((window as Window & { deferredPrompt?: BeforeInstallPromptEvent }).deferredPrompt!);
+      setShowInstallButton(true);
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', globalHandler);
+      window.removeEventListener('beforeinstallprompt-captured', earlyHandler as EventListener);
+    };
+  }, []);
+
   // Check if mobile
   useEffect(() => {
     const checkIsMobile = () => {
@@ -31,7 +67,7 @@ export default function Home() {
     return () => window.removeEventListener('resize', checkIsMobile);
   }, []);
 
-  // PWA Install functionality
+  // PWA Install functionality - Setup immediately
   useEffect(() => {
     const addDebugInfo = (message: string) => {
       console.log(message);
@@ -46,6 +82,10 @@ export default function Home() {
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       setShowInstallButton(true);
     };
+
+    // Add event listener IMMEDIATELY to catch early beforeinstallprompt events
+    addDebugInfo('📡 Adding beforeinstallprompt event listener IMMEDIATELY...');
+    window.addEventListener('beforeinstallprompt', handler);
 
     // Check if already installed
     const isInstalled = window.matchMedia('(display-mode: standalone)').matches || 
@@ -123,6 +163,22 @@ export default function Home() {
         addDebugInfo('✅ Display: standalone');
         addDebugInfo('✅ Start URL: Valid');
         addDebugInfo('🎯 App should trigger beforeinstallprompt event');
+        
+        // Try to force the beforeinstallprompt by simulating user engagement
+        addDebugInfo('🔄 Attempting to trigger beforeinstallprompt by simulating user engagement...');
+        
+        // Simulate user interaction to trigger beforeinstallprompt
+        const simulateUserInteraction = () => {
+          addDebugInfo('👆 Simulating user interaction to trigger beforeinstallprompt...');
+          // Try clicking on the page to simulate user engagement
+          document.body.click();
+          addDebugInfo('✅ User interaction simulated');
+        };
+        
+        // Try multiple times to trigger the event
+        setTimeout(simulateUserInteraction, 500);
+        setTimeout(simulateUserInteraction, 1500);
+        setTimeout(simulateUserInteraction, 2500);
       }
     }, 1000);
 
@@ -179,10 +235,10 @@ export default function Home() {
            
                        // Show specific instructions for Brave
             const browserInstructions = userAgent.includes('brave') 
-              ? '🦁 Brave: Look for the install icon (📱) in the address bar\n\n💡 If you don\'t see it:\n• Try refreshing the page\n• Make sure you\'re on HTTPS\n• Wait a few seconds for the icon to appear\n• Try accessing via HTTPS if on HTTP\n• Visit the page multiple times (browsers require this)'
-              : '🌐 Chrome: Look for the install icon (📱) in the address bar\n\n💡 If you don\'t see it:\n• Try refreshing the page\n• Make sure you\'re on HTTPS\n• Wait a few seconds for the icon to appear';
+              ? '🦁 Brave: The install prompt should appear automatically\n\n💡 If it doesn\'t appear:\n• Try refreshing the page\n• Make sure you\'re on HTTPS\n• Visit the page multiple times (browsers require this)\n• Try accessing via HTTPS if on HTTP'
+              : '🌐 Chrome: The install prompt should appear automatically\n\n💡 If it doesn\'t appear:\n• Try refreshing the page\n• Make sure you\'re on HTTPS\n• Visit the page multiple times (browsers require this)';
             
-            alert(`📱 How to Install PantryPal:\n\n${browserInstructions}\n\n💡 Tip: Make sure you're accessing the app via HTTPS for installation to work.\n\n🔄 Try visiting the page multiple times - browsers often require this before showing the install icon.`);
+            alert(`📱 How to Install PantryPal:\n\n${browserInstructions}\n\n💡 Tip: The native "Add to Home Screen" prompt should appear automatically when you click Install.\n\n🔄 If it doesn't work, try visiting the page multiple times - browsers often require this before showing the install prompt.`);
          } catch (error) {
            addDebugInfo(`❌ Error trying to trigger install: ${error}`);
            showManualInstallInstructions();
@@ -196,10 +252,10 @@ export default function Home() {
        } else if (userAgent.includes('android')) {
          addDebugInfo('📱 Android detected, showing menu instructions...');
          alert('📱 Android: Use your browser\'s "Add to Home Screen" option\n\n💡 Look in the browser menu for install options');
-       } else {
-         addDebugInfo('🌐 Generic browser detected, showing general instructions...');
-         alert('🌐 Desktop: Look for the install icon in the address bar\n📱 Mobile: Use your browser\'s "Add to Home Screen" option');
-       }
+               } else {
+          addDebugInfo('🌐 Generic browser detected, showing general instructions...');
+          alert('🌐 Desktop: The native "Add to Home Screen" prompt should appear automatically\n📱 Mobile: Use your browser\'s "Add to Home Screen" option\n\n💡 If the prompt doesn\'t appear, try visiting the page multiple times - browsers often require this.');
+        }
      }
   };
 
