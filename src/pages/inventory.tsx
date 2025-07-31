@@ -5,7 +5,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
 
 import Navigation from "../components/Navigation";
-// Removed FloatingAddButton import since it's distracting on inventory page
+import FloatingAddButton from "../components/FloatingAddButton";
 
 interface PantryItem {
   id: number;
@@ -1037,8 +1037,9 @@ export default function Inventory() {
         </div>
       )}
 
-      {/* Navigation only - removed FloatingAddButton */}
+      {/* Navigation and Floating Add Button */}
       <Navigation />
+      <FloatingAddButton />
     </div>
   );
 }

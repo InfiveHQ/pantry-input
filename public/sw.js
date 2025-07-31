@@ -1,11 +1,12 @@
-const CACHE_NAME = 'pantrypal-v1';
+const CACHE_NAME = 'pantrypal-v2';
 const urlsToCache = [
   '/',
   '/inventory',
   '/shopping-list',
   '/households',
   '/add-item',
-  '/login'
+  '/login',
+  '/manifest.json'
 ];
 
 self.addEventListener('install', (event) => {

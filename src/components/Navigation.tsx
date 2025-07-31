@@ -36,6 +36,9 @@ export default function Navigation() {
     { href: '/add-item', label: 'Add Item', icon: '➕' }
   ];
 
+  // Filter out "Add Item" for mobile since it will be a floating button
+  const mobileNavItems = navItems.filter(item => item.href !== '/add-item');
+
   // Mobile: Ultra-compact bottom navigation with Android gesture bar padding
   if (isMobile) {
     return (
@@ -65,7 +68,7 @@ export default function Navigation() {
             alignItems: 'center',
             flex: 1
           }}>
-            {navItems.map((item) => {
+            {mobileNavItems.map((item) => {
               const isActive = router.pathname === item.href;
               return (
                 <Link

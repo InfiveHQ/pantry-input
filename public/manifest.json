@@ -1,6 +1,6 @@
 {
-  "name": "PantryTracker",
-  "short_name": "PantryTracker",
+  "name": "PantryPal",
+  "short_name": "PantryPal",
   "description": "Smart pantry management with barcode scanning",
   "start_url": "/",
   "display": "standalone",

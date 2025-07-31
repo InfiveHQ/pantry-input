@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
 import Image from 'next/image';
-import ThemeToggle from '../components/ThemeToggle';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -111,8 +110,6 @@ export default function Login() {
       padding: '20px',
       position: 'relative'
     }}>
-      {/* Theme Toggle - Positioned in top-right corner */}
-      <ThemeToggle />
       
       <div style={{
         background: 'var(--card-bg)',
