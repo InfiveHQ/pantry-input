@@ -17,6 +17,7 @@ export default function Home() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallButton, setShowInstallButton] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<string[]>([]);
 
   // Check if mobile
   useEffect(() => {
@@ -32,8 +33,15 @@ export default function Home() {
 
   // PWA Install functionality
   useEffect(() => {
+    const addDebugInfo = (message: string) => {
+      console.log(message);
+      setDebugInfo(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
+    };
+
+    addDebugInfo('🔧 Setting up PWA install functionality...');
+    
     const handler = (e: Event) => {
-      console.log('🎉 PWA install prompt triggered!');
+      addDebugInfo('🎉 PWA install prompt triggered!');
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       setShowInstallButton(true);
@@ -42,7 +50,7 @@ export default function Home() {
     // Check if already installed
     const isInstalled = window.matchMedia('(display-mode: standalone)').matches || 
                        (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
-    console.log('📱 Is app installed:', isInstalled);
+    addDebugInfo(`📱 Is app installed: ${isInstalled}`);
 
     // Show install button if not installed
     if (!isInstalled) {
@@ -52,87 +60,100 @@ export default function Home() {
       const isHttps = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
       const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       
-      console.log('🔍 PWA Criteria Check:', {
-        hasValidManifest,
-        hasServiceWorker,
-        isHttps,
-        isMobile,
-        userAgent: navigator.userAgent,
-        url: window.location.href
-      });
+      addDebugInfo(`🔍 PWA Criteria: Manifest=${hasValidManifest}, HTTPS=${isHttps}, SW=${hasServiceWorker}`);
+      addDebugInfo(`📱 Browser: ${navigator.userAgent.substring(0, 50)}...`);
       
-      // More permissive criteria - show install button if basic requirements are met
+      // Always show install button if basic requirements are met, regardless of beforeinstallprompt
       if (hasValidManifest && isHttps) {
-        console.log('✅ App meets basic install criteria, showing install button');
+        addDebugInfo('✅ App meets basic install criteria, showing install button');
         setShowInstallButton(true);
       } else {
-        console.log('❌ App does not meet install criteria');
-        console.log('Missing:', {
-          manifest: !hasValidManifest ? 'manifest.json not found' : 'OK',
-          https: !isHttps ? 'Not HTTPS' : 'OK',
-          serviceWorker: !hasServiceWorker ? 'Service worker not available' : 'OK'
-        });
+        addDebugInfo('❌ App does not meet install criteria');
+        addDebugInfo(`Missing: Manifest=${!hasValidManifest}, HTTPS=${!isHttps}, SW=${!hasServiceWorker}`);
+        // Still show install button for manual installation
+        addDebugInfo('⚠️ Still showing install button for manual installation');
+        setShowInstallButton(true);
       }
     } else {
-      console.log('✅ App is already installed');
+      addDebugInfo('✅ App is already installed');
     }
 
+    // Add event listener for beforeinstallprompt
+    addDebugInfo('📡 Adding beforeinstallprompt event listener...');
     window.addEventListener('beforeinstallprompt', handler);
 
     return () => {
+      addDebugInfo('🧹 Cleaning up PWA event listeners...');
       window.removeEventListener('beforeinstallprompt', handler);
     };
   }, []);
 
   const handleInstallClick = async () => {
-    console.log('Install button clicked');
-    console.log('Deferred prompt available:', !!deferredPrompt);
-    console.log('Current URL:', window.location.href);
-    console.log('User agent:', navigator.userAgent);
+    const addDebugInfo = (message: string) => {
+      console.log(message);
+      setDebugInfo(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
+    };
+
+    addDebugInfo('🔘 Install button clicked');
+    addDebugInfo(`Deferred prompt available: ${!!deferredPrompt}`);
+    addDebugInfo(`Current URL: ${window.location.href}`);
+    addDebugInfo(`User agent: ${navigator.userAgent.substring(0, 50)}...`);
     
-    if (deferredPrompt) {
-      try {
-        console.log('Triggering native install prompt...');
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        
-        if (outcome === 'accepted') {
-          console.log('✅ User accepted the install prompt');
-          alert('Installation started! The app will be added to your home screen.');
-        } else {
-          console.log('❌ User dismissed the install prompt');
+          if (deferredPrompt) {
+        try {
+          addDebugInfo('🚀 Triggering native install prompt...');
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          
+          if (outcome === 'accepted') {
+            addDebugInfo('✅ User accepted the install prompt');
+            alert('🎉 Installation started! The app will be added to your home screen.');
+          } else {
+            addDebugInfo('❌ User dismissed the install prompt');
+          }
+          
+          setDeferredPrompt(null);
+          setShowInstallButton(false);
+        } catch (error) {
+          addDebugInfo(`❌ Error during install prompt: ${error}`);
+          // Fallback to manual instructions
+          showManualInstallInstructions();
         }
-        
-        setDeferredPrompt(null);
-        setShowInstallButton(false);
-      } catch (error) {
-        console.error('Error during install prompt:', error);
-        // Fallback to manual instructions
-        showManualInstallInstructions();
-      }
-    } else {
-      console.log('No deferred prompt available, checking if we can trigger install manually...');
-      
-      // Try to trigger install for browsers that support it but don't fire beforeinstallprompt
-      if (navigator.userAgent.includes('Chrome') || navigator.userAgent.includes('Edge')) {
-        console.log('Chrome/Edge detected, trying alternative install method...');
-        // For Chrome/Edge, we can try to show the install prompt in the address bar
-        alert('For Chrome/Edge: Look for the install icon (📱) in your browser\'s address bar and click it to install the app.');
       } else {
-        showManualInstallInstructions();
+        addDebugInfo('⚠️ No deferred prompt available, showing manual install instructions...');
+      
+      // Detect browser and show specific instructions
+      const userAgent = navigator.userAgent.toLowerCase();
+      let browserInstructions = '';
+      
+      if (userAgent.includes('chrome') && !userAgent.includes('edg')) {
+        browserInstructions = '🌐 Chrome: Look for the install icon (📱) in the address bar\n\n💡 If you don\'t see it:\n• Try refreshing the page\n• Make sure you\'re on HTTPS\n• Wait a few seconds for the icon to appear';
+      } else if (userAgent.includes('edge')) {
+        browserInstructions = '🌐 Edge: Look for the install icon (📱) in the address bar\n\n💡 If you don\'t see it:\n• Try refreshing the page\n• Make sure you\'re on HTTPS\n• Wait a few seconds for the icon to appear';
+      } else if (userAgent.includes('firefox')) {
+        browserInstructions = '🦊 Firefox: Click the menu (☰) → "Install App"\n\n💡 Alternative: Look for the install icon in the address bar';
+      } else if (userAgent.includes('safari')) {
+        browserInstructions = '🍎 Safari: Tap the share button → "Add to Home Screen"\n\n💡 Make sure you\'re on HTTPS for this to work';
+      } else if (userAgent.includes('android')) {
+        browserInstructions = '📱 Android: Use your browser\'s "Add to Home Screen" option\n\n💡 Look in the browser menu for install options';
+      } else {
+        browserInstructions = '🌐 Desktop: Look for the install icon in the address bar\n📱 Mobile: Use your browser\'s "Add to Home Screen" option';
       }
+      
+      alert(`📱 How to Install PantryPal:\n\n${browserInstructions}\n\n💡 Tip: Make sure you're accessing the app via HTTPS for installation to work.`);
     }
   };
 
   const showManualInstallInstructions = () => {
-    const instructions = `To install this app:
+    const instructions = `📱 How to Install PantryPal:
 
-📱 Chrome/Edge: Look for the install icon in the address bar
+🌐 Chrome/Edge: Look for the install icon (📱) in the address bar
 🍎 Safari: Tap the share button → "Add to Home Screen"
 🦊 Firefox: Click the menu → "Install App"
 📱 Mobile: Use your browser's "Add to Home Screen" option
 
-The app must be accessed via HTTPS for installation to work.`;
+💡 Tip: Make sure you're accessing the app via HTTPS for installation to work.
+🔄 Try refreshing the page if the install option doesn't appear.`;
     
     alert(instructions);
   };
@@ -205,12 +226,12 @@ The app must be accessed via HTTPS for installation to work.`;
             gap: '14px',
             marginBottom: '16px'
           }}>
-            <Image 
-              src="/icon.svg" 
-              alt="PantryPal Logo" 
-              width={32} 
-              height={32}
-            />
+                         <Image 
+               src="/resized_icon.svg" 
+               alt="PantryPal Logo" 
+               width={32} 
+               height={32}
+             />
                          <h1 style={{
                color: 'var(--text-primary)',
                fontSize: '28px',
@@ -358,15 +379,51 @@ The app must be accessed via HTTPS for installation to work.`;
            </Link>
         </div>
 
-        {/* User Account Section - Completely Separated */}
-        <div style={{
-          background: 'var(--card-bg)',
-          border: '2px solid var(--border)',
-          borderRadius: '16px',
-          padding: '20px',
-          marginTop: '24px',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)'
-        }}>
+                 {/* Debug Panel - Only show on mobile for troubleshooting */}
+         {isMobile && debugInfo.length > 0 && (
+           <div style={{
+             background: 'var(--card-bg)',
+             border: '2px solid var(--border)',
+             borderRadius: '16px',
+             padding: '16px',
+             marginTop: '16px',
+             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+             maxHeight: '200px',
+             overflow: 'auto'
+           }}>
+             <div style={{
+               color: 'var(--text-secondary)',
+               marginBottom: '12px',
+               fontSize: '12px',
+               fontWeight: '600',
+               textAlign: 'center'
+             }}>
+               🔍 PWA Debug Info
+             </div>
+             <div style={{
+               fontSize: '10px',
+               lineHeight: '1.4',
+               color: 'var(--text-secondary)',
+               fontFamily: 'monospace'
+             }}>
+               {debugInfo.slice(-5).map((info, index) => (
+                 <div key={index} style={{ marginBottom: '4px' }}>
+                   {info}
+                 </div>
+               ))}
+             </div>
+           </div>
+         )}
+
+         {/* User Account Section - Completely Separated */}
+         <div style={{
+           background: 'var(--card-bg)',
+           border: '2px solid var(--border)',
+           borderRadius: '16px',
+           padding: '20px',
+           marginTop: '24px',
+           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)'
+         }}>
           <div style={{
             color: 'var(--text-secondary)',
             marginBottom: '16px',
