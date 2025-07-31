@@ -17,7 +17,6 @@ export default function Home() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallButton, setShowInstallButton] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<string[]>([]);
 
   // Global PWA event listener - setup immediately when component loads
   useEffect(() => {
@@ -69,194 +68,82 @@ export default function Home() {
 
   // PWA Install functionality - Setup immediately
   useEffect(() => {
-    const addDebugInfo = (message: string) => {
-      console.log(message);
-      setDebugInfo(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
-    };
-
-    addDebugInfo('🔧 Setting up PWA install functionality...');
-    
     const handler = (e: Event) => {
-      addDebugInfo('🎉 PWA install prompt triggered!');
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       setShowInstallButton(true);
     };
 
     // Add event listener IMMEDIATELY to catch early beforeinstallprompt events
-    addDebugInfo('📡 Adding beforeinstallprompt event listener IMMEDIATELY...');
     window.addEventListener('beforeinstallprompt', handler);
 
     // Check if already installed
     const isInstalled = window.matchMedia('(display-mode: standalone)').matches || 
                        (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
-    addDebugInfo(`📱 Is app installed: ${isInstalled}`);
 
     // Show install button if not installed
     if (!isInstalled) {
       // Check if the app meets install criteria
       const hasValidManifest = document.querySelector('link[rel="manifest"]') !== null;
-      const hasServiceWorker = 'serviceWorker' in navigator;
       const isHttps = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
-      const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       
       // Additional criteria that browsers look for
       const hasValidIcons = document.querySelector('link[rel="icon"]') !== null;
-      const hasValidStartUrl = true; // We have start_url in manifest
-      const hasValidDisplay = true; // We have display: standalone
-      
-      addDebugInfo(`🔍 PWA Criteria: Manifest=${hasValidManifest}, HTTPS=${isHttps}, SW=${hasServiceWorker}`);
-      addDebugInfo(`🔍 Additional: Icons=${hasValidIcons}, StartURL=${hasValidStartUrl}, Display=${hasValidDisplay}`);
-      addDebugInfo(`📱 Browser: ${navigator.userAgent.substring(0, 50)}...`);
       
       // Always show install button if basic requirements are met, regardless of beforeinstallprompt
       if (hasValidManifest && isHttps && hasValidIcons) {
-        addDebugInfo('✅ App meets all install criteria, showing install button');
         setShowInstallButton(true);
       } else {
-        addDebugInfo('❌ App does not meet all install criteria');
-        addDebugInfo(`Missing: Manifest=${!hasValidManifest}, HTTPS=${!isHttps}, Icons=${!hasValidIcons}`);
         // Still show install button for manual installation
-        addDebugInfo('⚠️ Still showing install button for manual installation');
         setShowInstallButton(true);
       }
-    } else {
-      addDebugInfo('✅ App is already installed');
     }
 
     // Add event listener for beforeinstallprompt
-    addDebugInfo('📡 Adding beforeinstallprompt event listener...');
     window.addEventListener('beforeinstallprompt', handler);
 
-    // Also try to trigger the install prompt by checking if the app meets criteria
-    setTimeout(() => {
-      const hasValidManifest = document.querySelector('link[rel="manifest"]') !== null;
-      const isHttps = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
-      const hasValidIcons = document.querySelector('link[rel="icon"]') !== null;
-      
-      if (hasValidManifest && isHttps && hasValidIcons && !isInstalled) {
-        addDebugInfo('⏰ Checking if beforeinstallprompt should fire...');
-        addDebugInfo('✅ App meets all criteria for beforeinstallprompt event');
-        
-        // Try to force the beforeinstallprompt event by meeting additional criteria
-        addDebugInfo('🔧 Attempting to meet additional install criteria...');
-        
-        // Check if we have enough engagement (user has interacted with the page)
-        addDebugInfo('📊 User engagement: Page loaded and user is interacting');
-        
-        // Check if the app has been visited multiple times (browsers require this)
-        addDebugInfo('📈 Visit frequency: This helps trigger beforeinstallprompt');
-        
-        // For Brave specifically, try to trigger the install prompt
-        if (navigator.userAgent.toLowerCase().includes('brave')) {
-          addDebugInfo('🦁 Brave-specific: Trying to trigger beforeinstallprompt...');
-          // Brave sometimes needs additional criteria to show install icon
-          addDebugInfo('💡 Tip: Try refreshing the page or accessing via HTTPS if on HTTP');
-        }
-        
-        // Additional check: ensure the app is "installable" by meeting all browser criteria
-        addDebugInfo('🔍 Verifying all PWA criteria are met for beforeinstallprompt...');
-        addDebugInfo('✅ Manifest: Valid');
-        addDebugInfo('✅ HTTPS: Valid');
-        addDebugInfo('✅ Icons: Valid');
-        addDebugInfo('✅ Service Worker: Valid');
-        addDebugInfo('✅ Display: standalone');
-        addDebugInfo('✅ Start URL: Valid');
-        addDebugInfo('🎯 App should trigger beforeinstallprompt event');
-        
-        // Try to force the beforeinstallprompt by simulating user engagement
-        addDebugInfo('🔄 Attempting to trigger beforeinstallprompt by simulating user engagement...');
-        
-        // Simulate user interaction to trigger beforeinstallprompt
-        const simulateUserInteraction = () => {
-          addDebugInfo('👆 Simulating user interaction to trigger beforeinstallprompt...');
-          // Try clicking on the page to simulate user engagement
-          document.body.click();
-          addDebugInfo('✅ User interaction simulated');
-        };
-        
-        // Try multiple times to trigger the event
-        setTimeout(simulateUserInteraction, 500);
-        setTimeout(simulateUserInteraction, 1500);
-        setTimeout(simulateUserInteraction, 2500);
-      }
-    }, 1000);
-
     return () => {
-      addDebugInfo('🧹 Cleaning up PWA event listeners...');
       window.removeEventListener('beforeinstallprompt', handler);
     };
   }, []);
 
-  const handleInstallClick = async () => {
-    const addDebugInfo = (message: string) => {
-      console.log(message);
-      setDebugInfo(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`]);
-    };
-
-    addDebugInfo('🔘 Install button clicked');
-    addDebugInfo(`Deferred prompt available: ${!!deferredPrompt}`);
-    addDebugInfo(`Current URL: ${window.location.href}`);
-    addDebugInfo(`User agent: ${navigator.userAgent.substring(0, 50)}...`);
-    
-          if (deferredPrompt) {
-        try {
-          addDebugInfo('🚀 Triggering native install prompt...');
-          deferredPrompt.prompt();
-          const { outcome } = await deferredPrompt.userChoice;
-          
-          if (outcome === 'accepted') {
-            addDebugInfo('✅ User accepted the install prompt');
-            alert('🎉 Installation started! The app will be added to your home screen.');
-          } else {
-            addDebugInfo('❌ User dismissed the install prompt');
-          }
-          
-          setDeferredPrompt(null);
-          setShowInstallButton(false);
-        } catch (error) {
-          addDebugInfo(`❌ Error during install prompt: ${error}`);
-          // Fallback to manual instructions
-          showManualInstallInstructions();
+    const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        
+        if (outcome === 'accepted') {
+          alert('🎉 Installation started! The app will be added to your home screen.');
         }
-             } else {
-         addDebugInfo('⚠️ No deferred prompt available, trying alternative methods...');
-       
-       // Try to trigger install for Brave/Chrome
-       const userAgent = navigator.userAgent.toLowerCase();
-       
-       if (userAgent.includes('chrome') || userAgent.includes('brave') || userAgent.includes('edg')) {
-         addDebugInfo('🌐 Brave/Chrome detected, trying to trigger install prompt...');
-         
-         // Try to show the install prompt by simulating user interaction
-         try {
-           // For Brave/Chrome, we can try to show the install prompt in the address bar
-           addDebugInfo('📱 Looking for install icon in address bar...');
-           
-                       // Show specific instructions for Brave
-            const browserInstructions = userAgent.includes('brave') 
-              ? '🦁 Brave: The install prompt should appear automatically\n\n💡 If it doesn\'t appear:\n• Try refreshing the page\n• Make sure you\'re on HTTPS\n• Visit the page multiple times (browsers require this)\n• Try accessing via HTTPS if on HTTP'
-              : '🌐 Chrome: The install prompt should appear automatically\n\n💡 If it doesn\'t appear:\n• Try refreshing the page\n• Make sure you\'re on HTTPS\n• Visit the page multiple times (browsers require this)';
-            
-            alert(`📱 How to Install PantryPal:\n\n${browserInstructions}\n\n💡 Tip: The native "Add to Home Screen" prompt should appear automatically when you click Install.\n\n🔄 If it doesn't work, try visiting the page multiple times - browsers often require this before showing the install prompt.`);
-         } catch (error) {
-           addDebugInfo(`❌ Error trying to trigger install: ${error}`);
-           showManualInstallInstructions();
-         }
-       } else if (userAgent.includes('firefox')) {
-         addDebugInfo('🦊 Firefox detected, showing menu instructions...');
-         alert('🦊 Firefox: Click the menu (☰) → "Install App"\n\n💡 Alternative: Look for the install icon in the address bar');
-       } else if (userAgent.includes('safari')) {
-         addDebugInfo('🍎 Safari detected, showing share button instructions...');
-         alert('🍎 Safari: Tap the share button → "Add to Home Screen"\n\n💡 Make sure you\'re on HTTPS for this to work');
-       } else if (userAgent.includes('android')) {
-         addDebugInfo('📱 Android detected, showing menu instructions...');
-         alert('📱 Android: Use your browser\'s "Add to Home Screen" option\n\n💡 Look in the browser menu for install options');
-               } else {
-          addDebugInfo('🌐 Generic browser detected, showing general instructions...');
-          alert('🌐 Desktop: The native "Add to Home Screen" prompt should appear automatically\n📱 Mobile: Use your browser\'s "Add to Home Screen" option\n\n💡 If the prompt doesn\'t appear, try visiting the page multiple times - browsers often require this.');
-        }
-     }
+        
+        setDeferredPrompt(null);
+        setShowInstallButton(false);
+             } catch {
+         // Fallback to manual instructions
+         showManualInstallInstructions();
+       }
+    } else {
+      // Try to trigger install for Brave/Chrome
+      const userAgent = navigator.userAgent.toLowerCase();
+      
+      if (userAgent.includes('chrome') || userAgent.includes('brave') || userAgent.includes('edg')) {
+        // Show specific instructions for Brave
+        const browserInstructions = userAgent.includes('brave') 
+          ? '🦁 Brave: The install prompt should appear automatically\n\n💡 If it doesn\'t appear:\n• Try refreshing the page\n• Make sure you\'re on HTTPS\n• Visit the page multiple times (browsers require this)\n• Try accessing via HTTPS if on HTTP'
+          : '🌐 Chrome: The install prompt should appear automatically\n\n💡 If it doesn\'t appear:\n• Try refreshing the page\n• Make sure you\'re on HTTPS\n• Visit the page multiple times (browsers require this)';
+        
+        alert(`📱 How to Install PantryPal:\n\n${browserInstructions}\n\n💡 Tip: The native "Add to Home Screen" prompt should appear automatically when you click Install.\n\n🔄 If it doesn't work, try visiting the page multiple times - browsers often require this before showing the install prompt.`);
+      } else if (userAgent.includes('firefox')) {
+        alert('🦊 Firefox: Click the menu (☰) → "Install App"\n\n💡 Alternative: Look for the install icon in the address bar');
+      } else if (userAgent.includes('safari')) {
+        alert('🍎 Safari: Tap the share button → "Add to Home Screen"\n\n💡 Make sure you\'re on HTTPS for this to work');
+      } else if (userAgent.includes('android')) {
+        alert('📱 Android: Use your browser\'s "Add to Home Screen" option\n\n💡 Look in the browser menu for install options');
+      } else {
+        alert('🌐 Desktop: The native "Add to Home Screen" prompt should appear automatically\n📱 Mobile: Use your browser\'s "Add to Home Screen" option\n\n💡 If the prompt doesn\'t appear, try visiting the page multiple times - browsers often require this.');
+      }
+    }
   };
 
   const showManualInstallInstructions = () => {
@@ -492,43 +379,7 @@ export default function Home() {
                <div style={{ fontSize: isMobile ? '11px' : '13px', opacity: 0.9, lineHeight: '1.3' }}>Scan and add new items</div>
              </div>
            </Link>
-        </div>
-
-                 {/* Debug Panel - Only show on mobile for troubleshooting */}
-         {isMobile && debugInfo.length > 0 && (
-           <div style={{
-             background: 'var(--card-bg)',
-             border: '2px solid var(--border)',
-             borderRadius: '16px',
-             padding: '16px',
-             marginTop: '16px',
-             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
-             maxHeight: '200px',
-             overflow: 'auto'
-           }}>
-             <div style={{
-               color: 'var(--text-secondary)',
-               marginBottom: '12px',
-               fontSize: '12px',
-               fontWeight: '600',
-               textAlign: 'center'
-             }}>
-               🔍 PWA Debug Info
-             </div>
-             <div style={{
-               fontSize: '10px',
-               lineHeight: '1.4',
-               color: 'var(--text-secondary)',
-               fontFamily: 'monospace'
-             }}>
-               {debugInfo.slice(-5).map((info, index) => (
-                 <div key={index} style={{ marginBottom: '4px' }}>
-                   {info}
                  </div>
-               ))}
-             </div>
-           </div>
-         )}
 
          {/* User Account Section - Completely Separated */}
          <div style={{
