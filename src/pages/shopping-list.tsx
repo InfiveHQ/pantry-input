@@ -5,6 +5,9 @@ import { useRouter } from "next/router";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
 
+import Navigation from "../components/Navigation";
+import FloatingAddButton from "../components/FloatingAddButton";
+
 interface PantryItem {
   id: number;
   name: string;
@@ -30,6 +33,7 @@ export default function ShoppingList() {
   const router = useRouter();
   const [shoppingList, setShoppingList] = useState<PantryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -41,6 +45,18 @@ export default function ShoppingList() {
       fetchShoppingList();
     }
   }, [user, authLoading, router]);
+
+  // Check if mobile for responsive layout
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
 
   const fetchShoppingList = async () => {
     try {
@@ -162,32 +178,49 @@ export default function ShoppingList() {
   }
 
   return (
-    <div style={{ padding: 20, maxWidth: '100%', margin: '0 auto' }}>
-             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 }}>
-         <h1 style={{ color: '#333', margin: 0 }}>🛒 Shopping List</h1>
-         <div style={{ display: 'flex', gap: 10 }}>
-           <Link href="/" style={{
-             padding: '10px 20px',
-             background: '#28a745',
-             color: 'white',
-             textDecoration: 'none',
-             borderRadius: 4,
-             fontWeight: 'bold'
-           }}>
-             ➕ Add Item
-           </Link>
-           <Link href="/inventory" style={{
-             padding: '10px 20px',
-             background: '#007bff',
-             color: 'white',
-             textDecoration: 'none',
-             borderRadius: 4,
-             fontWeight: 'bold'
-           }}>
-             ← Back to Inventory
-           </Link>
-         </div>
-       </div>
+        <div style={{
+      padding: 20,
+      maxWidth: '100%',
+      margin: '0 auto',
+      background: 'var(--background)',
+      color: 'var(--foreground)',
+      minHeight: '100vh',
+      position: 'relative',
+      paddingTop: isMobile ? '15px' : '50px', // Responsive padding for compact desktop nav
+      paddingBottom: isMobile ? '70px' : '15px' // Reduced bottom padding for compact mobile nav
+    }}>
+      {/* Header with Theme Toggle and Sign Out */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        marginBottom: 30,
+        position: 'relative'
+      }}>
+        {/* Left side - Title */}
+        <h1 style={{ color: 'var(--text-primary)', margin: 0 }}>Shopping List</h1>
+        
+        {/* Right side - Clear All */}
+        <div style={{ display: 'flex', gap: 15, alignItems: 'center' }}>
+          <button
+            onClick={clearShoppingList}
+            style={{
+              padding: '8px 16px',
+              background: 'var(--danger)',
+              color: 'white',
+              textDecoration: 'none',
+              borderRadius: 6,
+              fontWeight: 'bold',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '12px',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            🗑️ Clear All
+          </button>
+        </div>
+      </div>
 
       {/* Stats Card */}
       <div style={{ 
@@ -352,6 +385,10 @@ export default function ShoppingList() {
           </div>
         </>
       )}
+      
+      {/* Navigation and Floating Add Button */}
+      <Navigation />
+      <FloatingAddButton />
     </div>
   );
 } 

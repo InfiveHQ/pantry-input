@@ -1,39 +1,47 @@
 @import "tailwindcss";
 
 :root {
-  /* Light mode variables */
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Light mode variables - More visually appealing with color variation */
+  --background: #f8f9fa;
+  --foreground: #2d3748;
   --card-bg: #ffffff;
-  --card-border: #e0e0e0;
-  --primary: #007bff;
-  --primary-hover: #0056b3;
-  --secondary: #6c757d;
-  --success: #28a745;
-  --warning: #ffc107;
-  --danger: #dc3545;
-  --text-primary: #333333;
-  --text-secondary: #666666;
-  --text-muted: #999999;
-  --border: #e0e0e0;
+  --card-border: #e2e8f0;
+  --primary: #3182ce;
+  --primary-hover: #2c5aa0;
+  --secondary: #718096;
+  --success: #38a169;
+  --warning: #d69e2e;
+  --danger: #e53e3e;
+  --text-primary: #2d3748;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --border: #e2e8f0;
   --input-bg: #ffffff;
-  --input-border: #ddd;
+  --input-border: #cbd5e0;
   --modal-bg: #ffffff;
-  --modal-overlay: rgba(0, 0, 0, 0.5);
-  --stats-card-bg: #f8f9fa;
-  --stats-card-active: #e3f2fd;
-  --expiring-week-bg: #fff3e0;
-  --expiring-week-border: #f57c00;
-  --expiring-3-days-bg: #fff8e1;
-  --expiring-3-days-border: #ff9800;
-  --expiring-today-bg: #ffebee;
-  --expiring-today-border: #f44336;
-  --expired-bg: #ffebee;
-  --expired-border: #d32f2f;
-  --finished-bg: #e8f5e8;
-  --finished-border: #28a745;
-  --location-bg: #e8f5e8;
-  --filter-bg: #fafafa;
+  --modal-overlay: rgba(0, 0, 0, 0.4);
+  --stats-card-bg: #f7fafc;
+  --stats-card-active: #ebf8ff;
+  --expiring-week-bg: #fef5e7;
+  --expiring-week-border: #ed8936;
+  --expiring-3-days-bg: #fef9e7;
+  --expiring-3-days-border: #ecc94b;
+  --expiring-today-bg: #fed7d7;
+  --expiring-today-border: #f56565;
+  --expired-bg: #fed7d7;
+  --expired-border: #e53e3e;
+  --finished-bg: #f0fff4;
+  --finished-border: #38a169;
+  --location-bg: #f0fff4;
+  --filter-bg: #f7fafc;
+  
+  /* Navigation and content area colors for better visual hierarchy */
+  --nav-bg: #000000;
+  --nav-text: #ffffff;
+  --nav-text-secondary: #d1d5db;
+  --nav-border: #374151;
+  --content-bg: #f1f3f4;
+  --content-card-bg: #ffffff;
 }
 
 .dark {
@@ -70,6 +78,14 @@
   --finished-border: #059669;
   --location-bg: #064e3b;
   --filter-bg: #374151;
+  
+  /* Navigation and content area colors for dark mode */
+  --nav-bg: #2d2d2d;
+  --nav-text: #ffffff;
+  --nav-text-secondary: #d1d5db;
+  --nav-border: #404040;
+  --content-bg: #1a1a1a;
+  --content-card-bg: #2d2d2d;
 }
 
 body {
@@ -77,11 +93,62 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
   transition: background-color 0.3s ease, color 0.3s ease;
+  cursor: default;
+}
+
+/* Ensure proper cursor behavior on desktop */
+@media (pointer: fine) {
+  * {
+    cursor: default;
+  }
+  
+  button, 
+  [role="button"], 
+  input[type="button"], 
+  input[type="submit"], 
+  input[type="reset"],
+  a,
+  [tabindex] {
+    cursor: pointer;
+  }
+  
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="search"],
+  textarea,
+  select {
+    cursor: text;
+  }
 }
 
 /* Smooth transitions for theme changes */
 * {
   transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+/* Light mode specific enhancements */
+:root {
+  /* Add subtle shadows for depth */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Enhanced card styling for light mode */
+:root .card {
+  box-shadow: var(--shadow-sm);
+  border-radius: 8px;
+}
+
+/* Softer focus states */
+:root input:focus,
+:root select:focus,
+:root textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.1);
 }
 
 

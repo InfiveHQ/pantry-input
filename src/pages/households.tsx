@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
-import Link from 'next/link';
 import { useAuth } from '../contexts/AuthContext';
+
+import Navigation from '../components/Navigation';
+import FloatingAddButton from '../components/FloatingAddButton';
 
 interface Household {
   id: string;
@@ -39,7 +41,6 @@ export default function Households() {
   const { 
     user, 
     loading: authLoading, 
-    signOut, 
     createHousehold, 
     getUserHouseholds, 
     inviteMember, 
@@ -57,6 +58,7 @@ export default function Households() {
   const [showMembers, setShowMembers] = useState<string | null>(null);
   const [showInvitations, setShowInvitations] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [isMobile, setIsMobile] = useState(false);
 
   const fetchHouseholds = useCallback(async () => {
     try {
@@ -82,6 +84,18 @@ export default function Households() {
       fetchHouseholds();
     }
   }, [user, fetchHouseholds]);
+
+  // Check if mobile for responsive layout
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
 
   const handleCreateHousehold = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -195,33 +209,46 @@ export default function Households() {
   }
 
   return (
-    <div style={{ padding: 20, maxWidth: '1200px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 }}>
-        <h1 style={{ color: '#333', margin: 0 }}>Households</h1>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <Link href="/" style={{
-            padding: '10px 20px',
-            background: '#007bff',
-            color: 'white',
-            textDecoration: 'none',
-            borderRadius: 4,
-            fontWeight: 'bold'
-          }}>
-            🏠 Home
-          </Link>
+        <div style={{
+      padding: 20,
+      maxWidth: '100%',
+      margin: '0 auto',
+      background: 'var(--background)',
+      color: 'var(--foreground)',
+      minHeight: '100vh',
+      position: 'relative',
+      paddingTop: isMobile ? '15px' : '50px', // Responsive padding for compact desktop nav
+      paddingBottom: isMobile ? '70px' : '15px' // Reduced bottom padding for compact mobile nav
+    }}>
+      {/* Header with Theme Toggle and Sign Out */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        marginBottom: 30,
+        position: 'relative'
+      }}>
+        {/* Left side - Title */}
+        <h1 style={{ color: 'var(--text-primary)', margin: 0 }}>Households</h1>
+        
+        {/* Right side - Create Household */}
+        <div style={{ display: 'flex', gap: 15, alignItems: 'center' }}>
           <button
-            onClick={signOut}
+            onClick={() => setShowCreateForm(true)}
             style={{
-              padding: '10px 20px',
-              background: '#6c757d',
+              padding: '8px 16px',
+              background: 'var(--primary)',
               color: 'white',
-              border: 'none',
-              borderRadius: 4,
+              textDecoration: 'none',
+              borderRadius: 6,
               fontWeight: 'bold',
-              cursor: 'pointer'
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '12px',
+              transition: 'all 0.2s ease'
             }}
           >
-            Logout
+            ➕ Create Household
           </button>
         </div>
       </div>
@@ -654,6 +681,10 @@ export default function Households() {
           </div>
         </div>
       )}
+      
+      {/* Navigation and Floating Add Button */}
+      <Navigation />
+      <FloatingAddButton />
     </div>
   );
 } 

@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/router";
 import { useAuth } from "../contexts/AuthContext";
-import { useTheme } from "../contexts/ThemeContext";
 import { supabase } from "../lib/supabase";
+
+import Navigation from "../components/Navigation";
+// Removed FloatingAddButton import since it's distracting on inventory page
 
 interface PantryItem {
   id: number;
@@ -26,7 +27,7 @@ interface PantryItem {
 export default function Inventory() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const { isDark, toggleTheme } = useTheme();
+
   const [items, setItems] = useState<PantryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -36,6 +37,7 @@ export default function Inventory() {
   const [expiryFilter, setExpiryFilter] = useState(""); // "expired", "expiring-soon", or ""
   const [editingItem, setEditingItem] = useState<PantryItem | null>(null);
   const [locationTabsExpanded, setLocationTabsExpanded] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   const locations = [
     "Shelf Top Small",
@@ -58,6 +60,18 @@ export default function Inventory() {
       fetchItems();
     }
   }, [user, authLoading, router]);
+
+  // Check if mobile for responsive sticky positioning
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
 
   // Show loading while checking authentication
   if (authLoading) {
@@ -273,55 +287,29 @@ export default function Inventory() {
       padding: 20, 
       maxWidth: '100%', 
       margin: '0 auto',
-      background: 'var(--background)',
+      background: 'var(--content-bg)',
       color: 'var(--foreground)',
-      minHeight: '100vh'
+      minHeight: '100vh',
+      position: 'relative',
+      paddingTop: isMobile ? '15px' : '60px', // Increased padding for desktop to account for navigation height
+      paddingBottom: isMobile ? '70px' : '15px' // Reduced bottom padding for compact mobile nav
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 }}>
-        <h1 style={{ color: 'var(--text-primary)', margin: 0 }}>Pantry Inventory</h1>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <button
-            onClick={toggleTheme}
-            style={{
-              padding: '8px 12px',
-              background: 'var(--secondary)',
-              color: 'white',
-              border: 'none',
-              borderRadius: 4,
-              cursor: 'pointer',
-              fontSize: 14,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 5
-            }}
-            title={`Switch to ${isDark ? 'light' : 'dark'} mode`}
-          >
-            {isDark ? '☀️' : '🌙'} {isDark ? 'Light' : 'Dark'}
-          </button>
-          <Link href="/" style={{
-            padding: '10px 20px',
-            background: 'var(--primary)',
-            color: 'white',
-            textDecoration: 'none',
-            borderRadius: 4,
-            fontWeight: 'bold'
-          }}>
-            ➕ Add Item
-          </Link>
-        </div>
-      </div>
 
-      {/* Sticky Navigation Container */}
-      <div style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-        background: 'var(--background)',
-        paddingTop: 10,
-        paddingBottom: 10,
-        borderBottom: '1px solid var(--border)',
-        marginBottom: 20
-      }}>
+
+             {/* Sticky Navigation Container - Responsive positioning */}
+               <div style={{
+          position: 'sticky',
+          top: isMobile ? '0px' : '70px', // No top offset for mobile since nav is at bottom
+          zIndex: 100,
+          background: 'var(--content-bg)',
+          paddingTop: 10,
+          paddingBottom: 10,
+          borderBottom: '1px solid var(--border)',
+          marginBottom: 20,
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          boxShadow: 'var(--shadow-sm)'
+        }}>
         {/* Compact Stats Cards */}
         <div style={{ 
           display: 'flex', 
@@ -450,39 +438,39 @@ export default function Inventory() {
           </div>
         </div>
 
-        {/* Collapsible Location Tabs */}
-        <div style={{ marginBottom: 15 }}>
-          <div 
-            onClick={() => setLocationTabsExpanded(!locationTabsExpanded)}
-            style={{ 
-              background: 'var(--stats-card-bg)',
-              color: 'var(--text-primary)',
-              padding: '8px 12px', 
-              borderRadius: 4, 
-              cursor: 'pointer',
-              fontSize: 14,
-              fontWeight: 'bold',
-              border: '1px solid var(--border)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: locationTabsExpanded ? 10 : 0
-            }}
-          >
-            <span>Storage Areas {locationFilter && `(${locationFilter})`}</span>
-            <span style={{ fontSize: 12 }}>{locationTabsExpanded ? '▼' : '▶'}</span>
-          </div>
-          
-          {locationTabsExpanded && (
-            <div style={{ 
-              display: 'flex', 
-              gap: 5, 
-              flexWrap: 'wrap',
-              padding: '10px',
-              background: 'var(--filter-bg)',
-              borderRadius: 4,
-              border: '1px solid var(--border)'
-            }}>
+                 {/* Collapsible Location Tabs */}
+         <div style={{ marginBottom: 8 }}>
+           <div 
+             onClick={() => setLocationTabsExpanded(!locationTabsExpanded)}
+             style={{ 
+               background: 'var(--stats-card-bg)',
+               color: 'var(--text-primary)',
+               padding: '6px 10px', 
+               borderRadius: 4, 
+               cursor: 'pointer',
+               fontSize: 12,
+               fontWeight: 'bold',
+               border: '1px solid var(--border)',
+               display: 'flex',
+               alignItems: 'center',
+               justifyContent: 'space-between',
+               marginBottom: locationTabsExpanded ? 6 : 0
+             }}
+           >
+             <span>Storage Areas {locationFilter && `(${locationFilter})`}</span>
+             <span style={{ fontSize: 10 }}>{locationTabsExpanded ? '▼' : '▶'}</span>
+           </div>
+           
+           {locationTabsExpanded && (
+             <div style={{ 
+               display: 'flex', 
+               gap: 4, 
+               flexWrap: 'wrap',
+               padding: '6px',
+               background: 'var(--filter-bg)',
+               borderRadius: 4,
+               border: '1px solid var(--border)'
+             }}>
               <div 
                 onClick={() => setLocationFilter("")}
                 style={{ 
@@ -523,18 +511,19 @@ export default function Inventory() {
         </div>
       </div>
 
-             {/* Compact Filters */}
-       <div style={{ 
-         display: 'flex', 
-         gap: 10, 
-         marginBottom: 20,
-         padding: 10,
-         background: 'var(--filter-bg)',
-         borderRadius: 4,
-         border: `1px solid var(--border)`,
-         alignItems: 'center',
-         flexWrap: 'wrap'
-       }}>
+                               {/* Compact Filters */}
+         <div style={{ 
+           display: 'flex', 
+           gap: 10, 
+           marginBottom: 12,
+           padding: 8,
+           background: 'var(--filter-bg)',
+           borderRadius: 6,
+           border: `1px solid var(--border)`,
+           alignItems: 'center',
+           flexWrap: 'wrap',
+           boxShadow: 'var(--shadow-sm)'
+         }}>
          <div style={{ flex: 1, minWidth: 200 }}>
            <input
              type="text"
@@ -596,15 +585,17 @@ export default function Inventory() {
         maxWidth: '100%'
       }}>
         {filteredAndSortedItems.map(item => (
-          <div key={item.id} style={{
-            border: `1px solid var(--card-border)`,
-            borderRadius: 4,
-            padding: 20,
-            background: 'var(--card-bg)',
-            position: 'relative',
-            maxWidth: '400px',
-            justifySelf: 'center'
-          }}>
+                                           <div key={item.id} style={{
+              border: `1px solid var(--card-border)`,
+              borderRadius: 8,
+              padding: 20,
+              background: 'var(--content-card-bg)',
+              position: 'relative',
+              maxWidth: '400px',
+              justifySelf: 'center',
+              boxShadow: 'var(--shadow-sm)',
+              transition: 'all 0.2s ease'
+            }}>
             
             {/* Expiry Status Indicator */}
             {item.expiry && (
@@ -1046,30 +1037,8 @@ export default function Inventory() {
         </div>
       )}
 
-      {/* Floating Action Button for Shopping List */}
-      <Link href="/shopping-list" style={{
-        position: 'fixed',
-        bottom: '20px',
-        right: '20px',
-        background: 'var(--success)',
-        color: 'white',
-        width: '60px',
-        height: '60px',
-        borderRadius: '50%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        textDecoration: 'none',
-        fontSize: '24px',
-        fontWeight: 'bold',
-        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-        transition: 'all 0.2s',
-        zIndex: 1000,
-        border: 'none',
-        cursor: 'pointer'
-      }}>
-        🛒
-      </Link>
+      {/* Navigation only - removed FloatingAddButton */}
+      <Navigation />
     </div>
   );
 }

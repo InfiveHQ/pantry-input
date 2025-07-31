@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../contexts/AuthContext';
+import Image from 'next/image';
+import ThemeToggle from '../components/ThemeToggle';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -100,39 +102,122 @@ export default function Login() {
   };
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
-      display: 'flex', 
-      alignItems: 'center', 
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+      display: 'flex',
+      alignItems: 'center',
       justifyContent: 'center',
-      background: '#f8f9fa'
+      padding: '20px',
+      position: 'relative'
     }}>
+      {/* Theme Toggle - Positioned in top-right corner */}
+      <ThemeToggle />
+      
       <div style={{
-        background: 'white',
-        padding: 40,
-        borderRadius: 8,
-        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+        background: 'var(--card-bg)',
+        borderRadius: '20px',
+        padding: '40px',
+        maxWidth: '500px',
         width: '100%',
-        maxWidth: 400
+        boxShadow: '0 12px 40px rgba(0, 0, 0, 0.15)',
+        border: '1px solid var(--card-border)',
+        position: 'relative'
       }}>
-        <h1 style={{ 
-          textAlign: 'center', 
-          marginBottom: 30, 
-          color: '#333',
-          fontSize: 24
+        {/* Logo and Branding */}
+        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+                     <div style={{ 
+             display: 'inline-flex', 
+             alignItems: 'center', 
+             justifyContent: 'center',
+             marginBottom: 12
+           }}>
+             <Image 
+               src="/icon.svg" 
+               alt="PantryPal Logo" 
+               width={50} 
+               height={50}
+             />
+           </div>
+          <h1 style={{ 
+            fontSize: 24,
+            fontWeight: 'bold',
+            color: '#22c55e',
+            margin: '0 0 6px 0'
+          }}>
+            PantryPal
+          </h1>
+          <p style={{ 
+            fontSize: 13,
+            color: '#666',
+            margin: 0
+          }}>
+            Smart pantry management with barcode scanning
+          </p>
+        </div>
+
+        {/* Tab Navigation */}
+        <div style={{ 
+          display: 'flex', 
+          marginBottom: 24,
+          background: '#f8f9fa',
+          borderRadius: 8,
+          padding: 3
         }}>
-          {isSignUp ? 'Create Account' : 'Sign In'}
-        </h1>
+          <button
+            onClick={() => {
+              setIsSignUp(false);
+              clearMessages();
+            }}
+            style={{
+              flex: 1,
+              padding: '10px 14px',
+              background: isSignUp ? 'transparent' : 'white',
+              border: 'none',
+              borderRadius: 6,
+              fontSize: 13,
+              fontWeight: '500',
+              color: isSignUp ? '#666' : '#333',
+              cursor: 'pointer',
+              boxShadow: isSignUp ? 'none' : '0 2px 4px rgba(0, 0, 0, 0.1)',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            Login
+          </button>
+          <button
+            onClick={() => {
+              setIsSignUp(true);
+              clearMessages();
+            }}
+            style={{
+              flex: 1,
+              padding: '10px 14px',
+              background: isSignUp ? 'white' : 'transparent',
+              border: 'none',
+              borderRadius: 6,
+              fontSize: 13,
+              fontWeight: '500',
+              color: isSignUp ? '#333' : '#666',
+              cursor: 'pointer',
+              boxShadow: isSignUp ? '0 2px 4px rgba(0, 0, 0, 0.1)' : 'none',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            Register
+          </button>
+        </div>
 
         <form onSubmit={handleSubmit}>
           {isSignUp && (
             <>
-              <div style={{ marginBottom: 20 }}>
+              <div style={{ marginBottom: 16 }}>
                 <label style={{ 
                   display: 'block', 
-                  marginBottom: 8, 
-                  fontWeight: 'bold',
-                  color: '#333'
+                  marginBottom: 6, 
+                  fontWeight: '600',
+                  color: '#333',
+                  fontSize: 13
                 }}>
                   First Name *
                 </label>
@@ -143,23 +228,27 @@ export default function Login() {
                     setFirstName(e.target.value);
                     clearMessages();
                   }}
+                  placeholder="Enter your first name"
                   required
                   style={{
                     width: '100%',
-                    padding: '12px',
-                    border: '1px solid #ddd',
-                    borderRadius: 4,
-                    fontSize: 16
+                    padding: '10px 14px',
+                    border: '1px solid #e1e5e9',
+                    borderRadius: 8,
+                    fontSize: 13,
+                    transition: 'border-color 0.2s ease',
+                    boxSizing: 'border-box'
                   }}
                 />
               </div>
 
-              <div style={{ marginBottom: 20 }}>
+              <div style={{ marginBottom: 16 }}>
                 <label style={{ 
                   display: 'block', 
-                  marginBottom: 8, 
-                  fontWeight: 'bold',
-                  color: '#333'
+                  marginBottom: 6, 
+                  fontWeight: '600',
+                  color: '#333',
+                  fontSize: 13
                 }}>
                   Last Name
                 </label>
@@ -170,24 +259,28 @@ export default function Login() {
                     setLastName(e.target.value);
                     clearMessages();
                   }}
+                  placeholder="Enter your last name"
                   style={{
                     width: '100%',
-                    padding: '12px',
-                    border: '1px solid #ddd',
-                    borderRadius: 4,
-                    fontSize: 16
+                    padding: '10px 14px',
+                    border: '1px solid #e1e5e9',
+                    borderRadius: 8,
+                    fontSize: 13,
+                    transition: 'border-color 0.2s ease',
+                    boxSizing: 'border-box'
                   }}
                 />
               </div>
             </>
           )}
 
-          <div style={{ marginBottom: 20 }}>
+          <div style={{ marginBottom: 16 }}>
             <label style={{ 
               display: 'block', 
-              marginBottom: 8, 
-              fontWeight: 'bold',
-              color: '#333'
+              marginBottom: 6, 
+              fontWeight: '600',
+              color: '#333',
+              fontSize: 13
             }}>
               Email
             </label>
@@ -198,23 +291,27 @@ export default function Login() {
                 setEmail(e.target.value);
                 clearMessages();
               }}
+              placeholder="Enter your email"
               required
               style={{
                 width: '100%',
-                padding: '12px',
-                border: '1px solid #ddd',
-                borderRadius: 4,
-                fontSize: 16
+                padding: '10px 14px',
+                border: '1px solid #e1e5e9',
+                borderRadius: 8,
+                fontSize: 13,
+                transition: 'border-color 0.2s ease',
+                boxSizing: 'border-box'
               }}
             />
           </div>
 
-          <div style={{ marginBottom: 20 }}>
+          <div style={{ marginBottom: 16 }}>
             <label style={{ 
               display: 'block', 
-              marginBottom: 8, 
-              fontWeight: 'bold',
-              color: '#333'
+              marginBottom: 6, 
+              fontWeight: '600',
+              color: '#333',
+              fontSize: 13
             }}>
               Password
             </label>
@@ -225,18 +322,26 @@ export default function Login() {
                 setPassword(e.target.value);
                 clearMessages();
               }}
+              placeholder="Enter your password"
               required
               minLength={6}
               style={{
                 width: '100%',
-                padding: '12px',
-                border: '1px solid #ddd',
-                borderRadius: 4,
-                fontSize: 16
+                padding: '10px 14px',
+                border: '1px solid #e1e5e9',
+                borderRadius: 8,
+                fontSize: 13,
+                transition: 'border-color 0.2s ease',
+                boxSizing: 'border-box'
               }}
             />
             {isSignUp && (
-              <small style={{ color: '#666', fontSize: 12 }}>
+              <small style={{ 
+                color: '#666', 
+                fontSize: 11,
+                marginTop: 3,
+                display: 'block'
+              }}>
                 Password must be at least 6 characters long
               </small>
             )}
@@ -244,12 +349,13 @@ export default function Login() {
 
           {error && (
             <div style={{ 
-              marginBottom: 20, 
-              padding: '10px', 
-              background: '#ffebee', 
-              color: '#c62828',
-              borderRadius: 4,
-              fontSize: 14
+              marginBottom: 16, 
+              padding: '10px 14px', 
+              background: '#fef2f2', 
+              color: '#dc2626',
+              borderRadius: 8,
+              fontSize: 13,
+              border: '1px solid #fecaca'
             }}>
               {error}
             </div>
@@ -257,12 +363,13 @@ export default function Login() {
 
           {success && (
             <div style={{ 
-              marginBottom: 20, 
-              padding: '10px', 
-              background: '#e8f5e8', 
-              color: '#2e7d32',
-              borderRadius: 4,
-              fontSize: 14
+              marginBottom: 16, 
+              padding: '10px 14px', 
+              background: '#f0fdf4', 
+              color: '#16a34a',
+              borderRadius: 8,
+              fontSize: 13,
+              border: '1px solid #bbf7d0'
             }}>
               {success}
             </div>
@@ -273,54 +380,32 @@ export default function Login() {
             disabled={loading}
             style={{
               width: '100%',
-              padding: '12px',
-              background: '#007bff',
+              padding: '12px 14px',
+              background: '#333',
               color: 'white',
               border: 'none',
-              borderRadius: 4,
-              fontSize: 16,
-              fontWeight: 'bold',
+              borderRadius: 8,
+              fontSize: 14,
+              fontWeight: '600',
               cursor: loading ? 'not-allowed' : 'pointer',
-              opacity: loading ? 0.7 : 1
+              opacity: loading ? 0.7 : 1,
+              transition: 'opacity 0.2s ease'
             }}
           >
-            {loading ? 'Loading...' : (isSignUp ? 'Create Account' : 'Sign In')}
+            {loading ? 'Loading...' : (isSignUp ? 'Register' : 'Sign In')}
           </button>
         </form>
 
-        <div style={{ 
-          textAlign: 'center', 
-          marginTop: 20,
-          paddingTop: 20,
-          borderTop: '1px solid #eee'
-        }}>
-          <button
-            onClick={() => {
-              setIsSignUp(!isSignUp);
-              clearMessages();
-            }}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#007bff',
-              cursor: 'pointer',
-              fontSize: 14,
-              textDecoration: 'underline'
-            }}
-          >
-            {isSignUp ? 'Already have an account? Sign In' : 'Need an account? Sign Up'}
-          </button>
-        </div>
-
         {isSignUp && (
           <div style={{ 
-            marginTop: 20,
-            padding: '10px',
-            background: '#fff3cd',
-            border: '1px solid #ffeaa7',
-            borderRadius: 4,
-            fontSize: 12,
-            color: '#856404'
+            marginTop: 16,
+            padding: '10px 14px',
+            background: '#fefce8',
+            border: '1px solid #fde047',
+            borderRadius: 8,
+            fontSize: 11,
+            color: '#a16207',
+            lineHeight: 1.3
           }}>
             <strong>Note:</strong> After creating your account, you&apos;ll receive a confirmation email. 
             Please click the link in the email to activate your account before signing in.

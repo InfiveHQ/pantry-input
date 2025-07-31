@@ -1,0 +1,30 @@
+<svg fill="none" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+  <!-- Bottle neck -->
+  <path d="M11 2C10.4 2 10 2.4 10 3v1.5c0 .3.2.5.5.5h3c.3 0 .5-.2.5-.5V3c0-.6-.4-1-1-1h-3z" fill="#22c55e"/>
+  
+  <!-- Bottle body -->
+  <path d="M8 6.5c0-.8.7-1.5 1.5-1.5h5c.8 0 1.5.7 1.5 1.5v12c0 1.1-.9 2-2 2h-4c-1.1 0-2-.9-2-2v-12z" fill="#22c55e"/>
+  
+  <!-- Barcode lines -->
+  <rect x="9" y="8" width="1" height="1" fill="white"/>
+  <rect x="11" y="8" width="1" height="1" fill="white"/>
+  <rect x="13" y="8" width="1" height="1" fill="white"/>
+  <rect x="15" y="8" width="1" height="1" fill="white"/>
+  
+  <rect x="9" y="10" width="2" height="1" fill="white"/>
+  <rect x="12" y="10" width="1" height="1" fill="white"/>
+  <rect x="14" y="10" width="2" height="1" fill="white"/>
+  
+  <rect x="9" y="12" width="1" height="1" fill="white"/>
+  <rect x="11" y="12" width="2" height="1" fill="white"/>
+  <rect x="14" y="12" width="1" height="1" fill="white"/>
+  <rect x="16" y="12" width="1" height="1" fill="white"/>
+  
+  <rect x="9" y="14" width="3" height="1" fill="white"/>
+  <rect x="13" y="14" width="1" height="1" fill="white"/>
+  <rect x="15" y="14" width="2" height="1" fill="white"/>
+  
+  <rect x="9" y="16" width="1" height="1" fill="white"/>
+  <rect x="11" y="16" width="2" height="1" fill="white"/>
+  <rect x="14" y="16" width="3" height="1" fill="white"/>
+</svg> 
