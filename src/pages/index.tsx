@@ -33,7 +33,7 @@ export default function Home() {
   // PWA Install functionality
   useEffect(() => {
     const handler = (e: Event) => {
-      console.log('PWA install prompt triggered');
+      console.log('🎉 PWA install prompt triggered!');
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       setShowInstallButton(true);
@@ -42,7 +42,7 @@ export default function Home() {
     // Check if already installed
     const isInstalled = window.matchMedia('(display-mode: standalone)').matches || 
                        (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
-    console.log('Is app installed:', isInstalled);
+    console.log('📱 Is app installed:', isInstalled);
 
     // Show install button if not installed
     if (!isInstalled) {
@@ -50,22 +50,31 @@ export default function Home() {
       const hasValidManifest = document.querySelector('link[rel="manifest"]') !== null;
       const hasServiceWorker = 'serviceWorker' in navigator;
       const isHttps = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
+      const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       
-      console.log('PWA Criteria Check:', {
+      console.log('🔍 PWA Criteria Check:', {
         hasValidManifest,
         hasServiceWorker,
         isHttps,
-        userAgent: navigator.userAgent
+        isMobile,
+        userAgent: navigator.userAgent,
+        url: window.location.href
       });
       
-      if (hasValidManifest && hasServiceWorker && isHttps) {
-        console.log('App meets install criteria, showing install button');
+      // More permissive criteria - show install button if basic requirements are met
+      if (hasValidManifest && isHttps) {
+        console.log('✅ App meets basic install criteria, showing install button');
         setShowInstallButton(true);
       } else {
-        console.log('App does not meet install criteria');
+        console.log('❌ App does not meet install criteria');
+        console.log('Missing:', {
+          manifest: !hasValidManifest ? 'manifest.json not found' : 'OK',
+          https: !isHttps ? 'Not HTTPS' : 'OK',
+          serviceWorker: !hasServiceWorker ? 'Service worker not available' : 'OK'
+        });
       }
     } else {
-      console.log('App is already installed');
+      console.log('✅ App is already installed');
     }
 
     window.addEventListener('beforeinstallprompt', handler);
@@ -76,27 +85,56 @@ export default function Home() {
   }, []);
 
   const handleInstallClick = async () => {
+    console.log('Install button clicked');
+    console.log('Deferred prompt available:', !!deferredPrompt);
+    console.log('Current URL:', window.location.href);
+    console.log('User agent:', navigator.userAgent);
+    
     if (deferredPrompt) {
       try {
+        console.log('Triggering native install prompt...');
         deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
         
         if (outcome === 'accepted') {
-          console.log('User accepted the install prompt');
+          console.log('✅ User accepted the install prompt');
+          alert('Installation started! The app will be added to your home screen.');
         } else {
-          console.log('User dismissed the install prompt');
+          console.log('❌ User dismissed the install prompt');
         }
         
         setDeferredPrompt(null);
         setShowInstallButton(false);
       } catch (error) {
         console.error('Error during install prompt:', error);
+        // Fallback to manual instructions
+        showManualInstallInstructions();
       }
     } else {
-      // Fallback for browsers that don't support beforeinstallprompt
-      console.log('No deferred prompt available, showing manual install instructions');
-      alert('To install this app:\n\nChrome/Edge: Click the install icon in the address bar\nSafari: Tap the share button and select "Add to Home Screen"\nFirefox: Click the menu and select "Install App"');
+      console.log('No deferred prompt available, checking if we can trigger install manually...');
+      
+      // Try to trigger install for browsers that support it but don't fire beforeinstallprompt
+      if (navigator.userAgent.includes('Chrome') || navigator.userAgent.includes('Edge')) {
+        console.log('Chrome/Edge detected, trying alternative install method...');
+        // For Chrome/Edge, we can try to show the install prompt in the address bar
+        alert('For Chrome/Edge: Look for the install icon (📱) in your browser\'s address bar and click it to install the app.');
+      } else {
+        showManualInstallInstructions();
+      }
     }
+  };
+
+  const showManualInstallInstructions = () => {
+    const instructions = `To install this app:
+
+📱 Chrome/Edge: Look for the install icon in the address bar
+🍎 Safari: Tap the share button → "Add to Home Screen"
+🦊 Firefox: Click the menu → "Install App"
+📱 Mobile: Use your browser's "Add to Home Screen" option
+
+The app must be accessed via HTTPS for installation to work.`;
+    
+    alert(instructions);
   };
 
   // Redirect to login if not authenticated
@@ -352,10 +390,10 @@ export default function Home() {
                   background: '#000000',
                   color: 'white',
                   border: 'none',
-                  padding: '4px 8px',
-                  borderRadius: '4px',
+                  padding: '5px 10px',
+                  borderRadius: '5px',
                   cursor: 'pointer',
-                  fontSize: '10px',
+                  fontSize: '11px',
                   fontWeight: '600',
                   transition: 'all 0.2s ease',
                   boxShadow: '0 2px 6px rgba(0, 0, 0, 0.1)',
@@ -382,15 +420,15 @@ export default function Home() {
                     background: '#000000',
                     color: 'white',
                     border: 'none',
-                    padding: '4px 8px',
-                    borderRadius: '4px',
+                    padding: '5px 10px',
+                    borderRadius: '5px',
                     cursor: 'pointer',
-                    fontSize: '10px',
+                    fontSize: '11px',
                     fontWeight: '600',
                     transition: 'all 0.2s ease',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '3px',
+                    gap: '4px',
                     boxShadow: '0 2px 6px rgba(0, 0, 0, 0.1)',
                     whiteSpace: 'nowrap'
                   }}
@@ -406,7 +444,7 @@ export default function Home() {
                   }}
                   title="Install PantryPal as a PWA"
                 >
-                  <span style={{ fontSize: '10px' }}>📱</span>
+                  <span style={{ fontSize: '11px' }}>📱</span>
                   Install
                 </button>
              )}
