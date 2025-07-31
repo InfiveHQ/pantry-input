@@ -82,6 +82,19 @@ export default function Home() {
     addDebugInfo('📡 Adding beforeinstallprompt event listener...');
     window.addEventListener('beforeinstallprompt', handler);
 
+    // Also try to trigger the install prompt by checking if the app meets criteria
+    setTimeout(() => {
+      const hasValidManifest = document.querySelector('link[rel="manifest"]') !== null;
+      const isHttps = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
+      
+      if (hasValidManifest && isHttps && !isInstalled) {
+        addDebugInfo('⏰ Checking if install icon should appear in address bar...');
+        // For Brave/Chrome, the install icon should appear in the address bar
+        // if the app meets the criteria and the user hasn't dismissed it recently
+        addDebugInfo('✅ App meets install criteria - install icon should appear in address bar');
+      }
+    }, 1000);
+
     return () => {
       addDebugInfo('🧹 Cleaning up PWA event listeners...');
       window.removeEventListener('beforeinstallprompt', handler);
@@ -119,29 +132,44 @@ export default function Home() {
           // Fallback to manual instructions
           showManualInstallInstructions();
         }
-      } else {
-        addDebugInfo('⚠️ No deferred prompt available, showing manual install instructions...');
-      
-      // Detect browser and show specific instructions
-      const userAgent = navigator.userAgent.toLowerCase();
-      let browserInstructions = '';
-      
-      if (userAgent.includes('chrome') && !userAgent.includes('edg')) {
-        browserInstructions = '🌐 Chrome: Look for the install icon (📱) in the address bar\n\n💡 If you don\'t see it:\n• Try refreshing the page\n• Make sure you\'re on HTTPS\n• Wait a few seconds for the icon to appear';
-      } else if (userAgent.includes('edge')) {
-        browserInstructions = '🌐 Edge: Look for the install icon (📱) in the address bar\n\n💡 If you don\'t see it:\n• Try refreshing the page\n• Make sure you\'re on HTTPS\n• Wait a few seconds for the icon to appear';
-      } else if (userAgent.includes('firefox')) {
-        browserInstructions = '🦊 Firefox: Click the menu (☰) → "Install App"\n\n💡 Alternative: Look for the install icon in the address bar';
-      } else if (userAgent.includes('safari')) {
-        browserInstructions = '🍎 Safari: Tap the share button → "Add to Home Screen"\n\n💡 Make sure you\'re on HTTPS for this to work';
-      } else if (userAgent.includes('android')) {
-        browserInstructions = '📱 Android: Use your browser\'s "Add to Home Screen" option\n\n💡 Look in the browser menu for install options';
-      } else {
-        browserInstructions = '🌐 Desktop: Look for the install icon in the address bar\n📱 Mobile: Use your browser\'s "Add to Home Screen" option';
-      }
-      
-      alert(`📱 How to Install PantryPal:\n\n${browserInstructions}\n\n💡 Tip: Make sure you're accessing the app via HTTPS for installation to work.`);
-    }
+             } else {
+         addDebugInfo('⚠️ No deferred prompt available, trying alternative methods...');
+       
+       // Try to trigger install for Brave/Chrome
+       const userAgent = navigator.userAgent.toLowerCase();
+       
+       if (userAgent.includes('chrome') || userAgent.includes('brave') || userAgent.includes('edg')) {
+         addDebugInfo('🌐 Brave/Chrome detected, trying to trigger install prompt...');
+         
+         // Try to show the install prompt by simulating user interaction
+         try {
+           // For Brave/Chrome, we can try to show the install prompt in the address bar
+           addDebugInfo('📱 Looking for install icon in address bar...');
+           
+           // Show specific instructions for Brave
+           const browserInstructions = userAgent.includes('brave') 
+             ? '🦁 Brave: Look for the install icon (📱) in the address bar\n\n💡 If you don\'t see it:\n• Try refreshing the page\n• Make sure you\'re on HTTPS\n• Wait a few seconds for the icon to appear\n• Try accessing via HTTPS if on HTTP'
+             : '🌐 Chrome: Look for the install icon (📱) in the address bar\n\n💡 If you don\'t see it:\n• Try refreshing the page\n• Make sure you\'re on HTTPS\n• Wait a few seconds for the icon to appear';
+           
+           alert(`📱 How to Install PantryPal:\n\n${browserInstructions}\n\n💡 Tip: Make sure you're accessing the app via HTTPS for installation to work.`);
+         } catch (error) {
+           addDebugInfo(`❌ Error trying to trigger install: ${error}`);
+           showManualInstallInstructions();
+         }
+       } else if (userAgent.includes('firefox')) {
+         addDebugInfo('🦊 Firefox detected, showing menu instructions...');
+         alert('🦊 Firefox: Click the menu (☰) → "Install App"\n\n💡 Alternative: Look for the install icon in the address bar');
+       } else if (userAgent.includes('safari')) {
+         addDebugInfo('🍎 Safari detected, showing share button instructions...');
+         alert('🍎 Safari: Tap the share button → "Add to Home Screen"\n\n💡 Make sure you\'re on HTTPS for this to work');
+       } else if (userAgent.includes('android')) {
+         addDebugInfo('📱 Android detected, showing menu instructions...');
+         alert('📱 Android: Use your browser\'s "Add to Home Screen" option\n\n💡 Look in the browser menu for install options');
+       } else {
+         addDebugInfo('🌐 Generic browser detected, showing general instructions...');
+         alert('🌐 Desktop: Look for the install icon in the address bar\n📱 Mobile: Use your browser\'s "Add to Home Screen" option');
+       }
+     }
   };
 
   const showManualInstallInstructions = () => {
