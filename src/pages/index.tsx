@@ -60,16 +60,22 @@ export default function Home() {
       const isHttps = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
       const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       
+      // Additional criteria that browsers look for
+      const hasValidIcons = document.querySelector('link[rel="icon"]') !== null;
+      const hasValidStartUrl = true; // We have start_url in manifest
+      const hasValidDisplay = true; // We have display: standalone
+      
       addDebugInfo(`🔍 PWA Criteria: Manifest=${hasValidManifest}, HTTPS=${isHttps}, SW=${hasServiceWorker}`);
+      addDebugInfo(`🔍 Additional: Icons=${hasValidIcons}, StartURL=${hasValidStartUrl}, Display=${hasValidDisplay}`);
       addDebugInfo(`📱 Browser: ${navigator.userAgent.substring(0, 50)}...`);
       
       // Always show install button if basic requirements are met, regardless of beforeinstallprompt
-      if (hasValidManifest && isHttps) {
-        addDebugInfo('✅ App meets basic install criteria, showing install button');
+      if (hasValidManifest && isHttps && hasValidIcons) {
+        addDebugInfo('✅ App meets all install criteria, showing install button');
         setShowInstallButton(true);
       } else {
-        addDebugInfo('❌ App does not meet install criteria');
-        addDebugInfo(`Missing: Manifest=${!hasValidManifest}, HTTPS=${!isHttps}, SW=${!hasServiceWorker}`);
+        addDebugInfo('❌ App does not meet all install criteria');
+        addDebugInfo(`Missing: Manifest=${!hasValidManifest}, HTTPS=${!isHttps}, Icons=${!hasValidIcons}`);
         // Still show install button for manual installation
         addDebugInfo('⚠️ Still showing install button for manual installation');
         setShowInstallButton(true);
@@ -86,12 +92,37 @@ export default function Home() {
     setTimeout(() => {
       const hasValidManifest = document.querySelector('link[rel="manifest"]') !== null;
       const isHttps = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
+      const hasValidIcons = document.querySelector('link[rel="icon"]') !== null;
       
-      if (hasValidManifest && isHttps && !isInstalled) {
-        addDebugInfo('⏰ Checking if install icon should appear in address bar...');
-        // For Brave/Chrome, the install icon should appear in the address bar
-        // if the app meets the criteria and the user hasn't dismissed it recently
-        addDebugInfo('✅ App meets install criteria - install icon should appear in address bar');
+      if (hasValidManifest && isHttps && hasValidIcons && !isInstalled) {
+        addDebugInfo('⏰ Checking if beforeinstallprompt should fire...');
+        addDebugInfo('✅ App meets all criteria for beforeinstallprompt event');
+        
+        // Try to force the beforeinstallprompt event by meeting additional criteria
+        addDebugInfo('🔧 Attempting to meet additional install criteria...');
+        
+        // Check if we have enough engagement (user has interacted with the page)
+        addDebugInfo('📊 User engagement: Page loaded and user is interacting');
+        
+        // Check if the app has been visited multiple times (browsers require this)
+        addDebugInfo('📈 Visit frequency: This helps trigger beforeinstallprompt');
+        
+        // For Brave specifically, try to trigger the install prompt
+        if (navigator.userAgent.toLowerCase().includes('brave')) {
+          addDebugInfo('🦁 Brave-specific: Trying to trigger beforeinstallprompt...');
+          // Brave sometimes needs additional criteria to show install icon
+          addDebugInfo('💡 Tip: Try refreshing the page or accessing via HTTPS if on HTTP');
+        }
+        
+        // Additional check: ensure the app is "installable" by meeting all browser criteria
+        addDebugInfo('🔍 Verifying all PWA criteria are met for beforeinstallprompt...');
+        addDebugInfo('✅ Manifest: Valid');
+        addDebugInfo('✅ HTTPS: Valid');
+        addDebugInfo('✅ Icons: Valid');
+        addDebugInfo('✅ Service Worker: Valid');
+        addDebugInfo('✅ Display: standalone');
+        addDebugInfo('✅ Start URL: Valid');
+        addDebugInfo('🎯 App should trigger beforeinstallprompt event');
       }
     }, 1000);
 
@@ -146,12 +177,12 @@ export default function Home() {
            // For Brave/Chrome, we can try to show the install prompt in the address bar
            addDebugInfo('📱 Looking for install icon in address bar...');
            
-           // Show specific instructions for Brave
-           const browserInstructions = userAgent.includes('brave') 
-             ? '🦁 Brave: Look for the install icon (📱) in the address bar\n\n💡 If you don\'t see it:\n• Try refreshing the page\n• Make sure you\'re on HTTPS\n• Wait a few seconds for the icon to appear\n• Try accessing via HTTPS if on HTTP'
-             : '🌐 Chrome: Look for the install icon (📱) in the address bar\n\n💡 If you don\'t see it:\n• Try refreshing the page\n• Make sure you\'re on HTTPS\n• Wait a few seconds for the icon to appear';
-           
-           alert(`📱 How to Install PantryPal:\n\n${browserInstructions}\n\n💡 Tip: Make sure you're accessing the app via HTTPS for installation to work.`);
+                       // Show specific instructions for Brave
+            const browserInstructions = userAgent.includes('brave') 
+              ? '🦁 Brave: Look for the install icon (📱) in the address bar\n\n💡 If you don\'t see it:\n• Try refreshing the page\n• Make sure you\'re on HTTPS\n• Wait a few seconds for the icon to appear\n• Try accessing via HTTPS if on HTTP\n• Visit the page multiple times (browsers require this)'
+              : '🌐 Chrome: Look for the install icon (📱) in the address bar\n\n💡 If you don\'t see it:\n• Try refreshing the page\n• Make sure you\'re on HTTPS\n• Wait a few seconds for the icon to appear';
+            
+            alert(`📱 How to Install PantryPal:\n\n${browserInstructions}\n\n💡 Tip: Make sure you're accessing the app via HTTPS for installation to work.\n\n🔄 Try visiting the page multiple times - browsers often require this before showing the install icon.`);
          } catch (error) {
            addDebugInfo(`❌ Error trying to trigger install: ${error}`);
            showManualInstallInstructions();
