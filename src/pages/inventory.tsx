@@ -45,6 +45,7 @@ export default function Inventory() {
     "Shelf Top Large",
     "Shelf Bottom",
     "Countertop",
+    "Box Coffee",
     "Snack Cabinet",
     "Medicine Cabinet",
     "Alcohol Cabinet",
@@ -460,7 +461,7 @@ export default function Inventory() {
                marginBottom: locationTabsExpanded ? 6 : 0
              }}
            >
-             <span>Storage Areas {locationFilter && `(${locationFilter})`}</span>
+             <span style={{ fontSize: isMobile ? 12 : 14 }}>Storage Areas {locationFilter && `(${locationFilter})`}</span>
              <span style={{ fontSize: 10 }}>{locationTabsExpanded ? '▼' : '▶'}</span>
            </div>
            

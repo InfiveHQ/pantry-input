@@ -7,6 +7,7 @@ const LOCATION_OPTIONS = [
   "Shelf Top Large",
   "Shelf Bottom",
   "Countertop",
+  "Box Coffee",
   "Snack Cabinet",
   "Medicine Cabinet",
   "Alcohol Cabinet",
@@ -39,6 +40,7 @@ export default function ProductForm({ barcode, productData }: {
   const [showCamera, setShowCamera] = useState(false);
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
   const [selectedCamera, setSelectedCamera] = useState<string | undefined>(undefined);
+  const [isMobile, setIsMobile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -63,6 +65,18 @@ export default function ProductForm({ barcode, productData }: {
       setFormData(prev => ({ ...prev, barcode }));
     }
   }, [barcode, productData]);
+
+  // Check if mobile for responsive styling
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
 
   // List available cameras
   useEffect(() => {
@@ -878,7 +892,7 @@ export default function ProductForm({ barcode, productData }: {
                 padding: '10px',
                 border: '1px solid var(--input-border)',
                 borderRadius: 4,
-                fontSize: 16,
+                fontSize: isMobile ? 14 : 16,
                 background: 'var(--input-bg)',
                 color: 'var(--text-primary)'
               }}
