@@ -45,6 +45,9 @@ export default function Inventory() {
     "Shelf Top Large",
     "Shelf Bottom",
     "Countertop",
+    "Snack Cabinet",
+    "Medicine Cabinet",
+    "Alcohol Cabinet",
     "Fridge",
     "Freezer",
     "Unknown"
@@ -487,7 +490,7 @@ export default function Inventory() {
               >
                 All Areas
               </div>
-              {locations.filter(loc => loc !== 'Unknown').map(location => (
+              {locations.map(location => (
                 <div 
                   key={location}
                   onClick={() => setLocationFilter(location)}

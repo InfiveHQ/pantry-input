@@ -7,6 +7,9 @@ const LOCATION_OPTIONS = [
   "Shelf Top Large",
   "Shelf Bottom",
   "Countertop",
+  "Snack Cabinet",
+  "Medicine Cabinet",
+  "Alcohol Cabinet",
   "Fridge",
   "Freezer",
   "Unknown"
