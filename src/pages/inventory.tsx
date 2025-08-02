@@ -296,6 +296,10 @@ export default function Inventory() {
     return 'ok';
   };
 
+  const getItemsWithSameName = (itemName: string) => {
+    return items.filter(item => item.name.toLowerCase() === itemName.toLowerCase());
+  };
+
   const filteredAndSortedItems = items
     .filter(item => {
       const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -678,6 +682,36 @@ export default function Inventory() {
               }} />
             )}
 
+                         {/* Total Quantity Indicator */}
+             {(() => {
+               const itemsWithSameName = getItemsWithSameName(item.name);
+               if (itemsWithSameName.length > 1) {
+                 return (
+                   <div style={{
+                     position: 'absolute',
+                     top: 12,
+                     right: item.expiry ? 32 : 12,
+                     background: 'var(--quantity-indicator-bg, #ffffff)',
+                     color: 'var(--quantity-indicator-text, #000000)',
+                                           fontSize: 12,
+                     fontWeight: '600',
+                     width: 20,
+                     height: 20,
+                     borderRadius: '50%',
+                     textAlign: 'center',
+                     display: 'flex',
+                     alignItems: 'center',
+                     justifyContent: 'center',
+                     border: '1px solid var(--quantity-indicator-border, rgba(0, 0, 0, 0.1))',
+                     boxShadow: 'var(--quantity-indicator-shadow, 0 1px 3px rgba(0, 0, 0, 0.15))'
+                   }}>
+                     {itemsWithSameName.length}
+                   </div>
+                 );
+               }
+               return null;
+             })()}
+
             {/* Image */}
             {item.image && (
               <div style={{ 
@@ -725,26 +759,25 @@ export default function Inventory() {
               </span>
             </div>
             
-            <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 10 }}>
-              {item.brand && <div><strong>Brand:</strong> {item.brand}</div>}
-              {item.category && <div><strong>Category:</strong> {item.category}</div>}
-              <div><strong>Quantity:</strong> {item.quantity}</div>
-              <div><strong>Status:</strong> {
-                item.completion === null ? 'Unopened/New' :
-                item.completion === 100 ? 'Unopened/New' :
-                item.completion === 0 ? 'Used' :
-                `${item.completion}% remaining`
-              }</div>
-              {item.purchase_date && (
-                <div><strong>Purchased:</strong> {new Date(item.purchase_date).toLocaleDateString()}</div>
-              )}
-              {item.expiry && (
-                <div><strong>Expires:</strong> {new Date(item.expiry).toLocaleDateString()}</div>
-              )}
-              {item.notes && (
-                <div><strong>Notes:</strong> {item.notes}</div>
-              )}
-            </div>
+                         <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 10 }}>
+               {item.brand && <div><strong>Brand:</strong> {item.brand}</div>}
+               {item.category && <div><strong>Category:</strong> {item.category}</div>}
+               <div><strong>Status:</strong> {
+                 item.completion === null ? 'Unopened/New' :
+                 item.completion === 100 ? 'Unopened/New' :
+                 item.completion === 0 ? 'Used' :
+                 `${item.completion}% remaining`
+               }</div>
+               {item.purchase_date && (
+                 <div><strong>Purchased:</strong> {new Date(item.purchase_date).toLocaleDateString()}</div>
+               )}
+               {item.expiry && (
+                 <div><strong>Expires:</strong> {new Date(item.expiry).toLocaleDateString()}</div>
+               )}
+               {item.notes && (
+                 <div><strong>Notes:</strong> {item.notes}</div>
+               )}
+             </div>
 
             {/* Actions */}
             <div style={{ display: 'flex', gap: 8, marginTop: 15 }}>

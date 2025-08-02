@@ -34,6 +34,10 @@
   --finished-border: #38a169;
   --location-bg: #f0fff4;
   --filter-bg: #f7fafc;
+  --quantity-indicator-bg: #f8f9fa;
+  --quantity-indicator-text: #4a5568;
+  --quantity-indicator-border: rgba(0, 0, 0, 0.08);
+  --quantity-indicator-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   
   /* Navigation and content area colors for better visual hierarchy */
   --nav-bg: #000000;
@@ -78,6 +82,10 @@
   --finished-border: #059669;
   --location-bg: #064e3b;
   --filter-bg: #374151;
+  --quantity-indicator-bg: #374151;
+  --quantity-indicator-text: #d1d5db;
+  --quantity-indicator-border: rgba(255, 255, 255, 0.1);
+  --quantity-indicator-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
   
   /* Navigation and content area colors for dark mode */
   --nav-bg: #2d2d2d;
