@@ -39,6 +39,7 @@ export default function Inventory() {
   const [locationTabsExpanded, setLocationTabsExpanded] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
+
   const locations = [
     "Shelf Top Small",
     "Shelf Top Right", 
@@ -263,8 +264,14 @@ export default function Inventory() {
       });
 
       if (response.ok) {
-        // Instead of trying to parse the response, just refresh the items list
+        // Refresh items list
         await fetchItems();
+        
+        // Scroll to top to show the new item
+        setTimeout(() => {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 100);
+        
         alert('Item duplicated successfully!');
       } else {
         const errorText = await response.text();
