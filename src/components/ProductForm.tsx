@@ -365,11 +365,12 @@ export default function ProductForm({ barcode, productData }: {
     setIsSubmitting(true);
 
     try {
-      // Convert empty date strings to null
+      // Convert empty date strings to null and default location to "Unknown"
       const submitData = {
         ...formData,
         purchase_date: formData.purchase_date || null,
         expiry: formData.expiry || null,
+        location: formData.location || "Unknown",
         quantity: formData.quantity ? parseFloat(formData.quantity) : null,
         completion: formData.completion ? parseFloat(formData.completion) : null,
         // Remove scanned_at and created_at so they get set automatically by the database

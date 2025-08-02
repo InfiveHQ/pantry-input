@@ -9,14 +9,14 @@ import FloatingAddButton from "../components/FloatingAddButton";
 
 interface PantryItem {
   id: number;
-  name: string;
-  brand: string;
-  category: string;
+  name: string | null;
+  brand: string | null;
+  category: string | null;
   quantity: number;
   completion: number;
   expiry: string;
   purchase_date: string | null;
-  location: string;
+  location: string | null;
   tags: string;
   notes: string;
   barcode: string;
@@ -53,6 +53,7 @@ export default function Inventory() {
     "Alcohol Cabinet",
     "Fridge",
     "Freezer",
+    "Cleaning Cupboard",
     "Unknown"
   ];
 
@@ -213,6 +214,7 @@ export default function Inventory() {
         expiry: updatedItem.expiry || null,
         brand: updatedItem.brand || null,
         category: updatedItem.category || null,
+        location: updatedItem.location || "Unknown",
         tags: updatedItem.tags || null,
         notes: updatedItem.notes || null,
         barcode: updatedItem.barcode || null,
@@ -297,14 +299,14 @@ export default function Inventory() {
   };
 
   const getItemsWithSameName = (itemName: string) => {
-    return items.filter(item => item.name.toLowerCase() === itemName.toLowerCase());
+    return items.filter(item => (item.name?.toLowerCase() || '') === itemName.toLowerCase());
   };
 
   const filteredAndSortedItems = items
     .filter(item => {
-      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          item.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          item.category.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = (item.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+                          (item.brand?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+                          (item.category?.toLowerCase() || '').includes(searchTerm.toLowerCase());
       const matchesLocation = !locationFilter || item.location === locationFilter;
       
       // For "Finished" tab, show all finished items regardless of showUsedItems setting
@@ -325,7 +327,7 @@ export default function Inventory() {
     .sort((a, b) => {
       switch (sortBy) {
         case 'name':
-          return a.name.localeCompare(b.name);
+          return (a.name || '').localeCompare(b.name || '');
         case 'expiry':
           return new Date(a.expiry || '9999-12-31').getTime() - new Date(b.expiry || '9999-12-31').getTime();
         case 'purchase_date':
@@ -335,7 +337,7 @@ export default function Inventory() {
         case 'scanned_at':
           return new Date(b.scanned_at).getTime() - new Date(a.scanned_at).getTime();
         case 'location':
-          return a.location.localeCompare(b.location);
+          return (a.location || '').localeCompare(b.location || '');
         default:
           return new Date(b.created_at).getTime() - new Date(a.created_at).getTime(); // Default to created_at sorting
       }
@@ -591,7 +593,7 @@ export default function Inventory() {
            flexWrap: 'wrap',
            boxShadow: 'var(--shadow-sm)'
          }}>
-         <div style={{ flex: 1, minWidth: 200 }}>
+         <div style={{ flex: 1, minWidth: 200, position: 'relative' }}>
            <input
              type="text"
              placeholder="Search by name, brand, or category..."
@@ -600,6 +602,7 @@ export default function Inventory() {
              style={{
                width: '100%',
                padding: '8px 12px',
+               paddingRight: searchTerm ? '32px' : '12px',
                border: `1px solid var(--input-border)`,
                borderRadius: 4,
                fontSize: 14,
@@ -607,6 +610,39 @@ export default function Inventory() {
                color: 'var(--text-primary)'
              }}
            />
+           {searchTerm && (
+             <button
+               onClick={() => setSearchTerm('')}
+               style={{
+                 position: 'absolute',
+                 right: '8px',
+                 top: '50%',
+                 transform: 'translateY(-50%)',
+                 background: 'none',
+                 border: 'none',
+                 cursor: 'pointer',
+                 fontSize: '16px',
+                 color: 'var(--text-secondary)',
+                 padding: '4px',
+                 borderRadius: '50%',
+                 display: 'flex',
+                 alignItems: 'center',
+                 justifyContent: 'center',
+                 width: '20px',
+                 height: '20px'
+               }}
+               onMouseEnter={(e) => {
+                 e.currentTarget.style.backgroundColor = 'var(--border)';
+                 e.currentTarget.style.color = 'var(--text-primary)';
+               }}
+               onMouseLeave={(e) => {
+                 e.currentTarget.style.backgroundColor = 'transparent';
+                 e.currentTarget.style.color = 'var(--text-secondary)';
+               }}
+             >
+               ×
+             </button>
+           )}
          </div>
 
          <div style={{ minWidth: 120 }}>
@@ -684,7 +720,7 @@ export default function Inventory() {
 
                          {/* Total Quantity Indicator */}
              {(() => {
-               const itemsWithSameName = getItemsWithSameName(item.name);
+               const itemsWithSameName = getItemsWithSameName(item.name || '');
                if (itemsWithSameName.length > 1) {
                  return (
                    <div style={{
@@ -724,7 +760,7 @@ export default function Inventory() {
               }}>
                 <Image
                   src={item.image}
-                  alt={item.name}
+                  alt={item.name || 'Item'}
                   width={300}
                   height={250}
                   style={{
@@ -902,7 +938,7 @@ export default function Inventory() {
                 </label>
                 <input
                   type="text"
-                  value={editingItem.name}
+                  value={editingItem.name || ''}
                   onChange={(e) => setEditingItem({...editingItem, name: e.target.value})}
                   style={{
                     width: '100%',
