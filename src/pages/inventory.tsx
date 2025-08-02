@@ -15,7 +15,7 @@ interface PantryItem {
   quantity: number;
   completion: number;
   expiry: string;
-  purchase_date: string;
+  purchase_date: string | null;
   location: string;
   tags: string;
   notes: string;
@@ -204,6 +204,19 @@ export default function Inventory() {
 
   const updateItem = async (updatedItem: PantryItem) => {
     try {
+      // Clean up the data before sending to database
+      const cleanItem = {
+        ...updatedItem,
+        purchase_date: updatedItem.purchase_date || null,
+        expiry: updatedItem.expiry || null,
+        brand: updatedItem.brand || null,
+        category: updatedItem.category || null,
+        tags: updatedItem.tags || null,
+        notes: updatedItem.notes || null,
+        barcode: updatedItem.barcode || null,
+        image: updatedItem.image || null
+      };
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/pantry_items?id=eq.${updatedItem.id}`, {
         method: 'PATCH',
         headers: {
@@ -211,7 +224,7 @@ export default function Inventory() {
           'apikey': process.env.NEXT_PUBLIC_SUPABASE_KEY!,
           'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_KEY}`
         },
-        body: JSON.stringify(updatedItem)
+        body: JSON.stringify(cleanItem)
       });
 
       if (response.ok) {
@@ -226,6 +239,41 @@ export default function Inventory() {
     } catch (error) {
       console.error('Error updating item:', error);
       alert('Error updating item');
+    }
+  };
+
+    const duplicateItem = async (item: PantryItem) => {
+    try {
+      const newItem = {
+        ...item,
+        id: undefined, // Remove ID so Supabase generates a new one
+        completion: 100, // Reset to new item
+        // Keep original purchase_date instead of setting to today
+        scanned_at: new Date().toISOString().split('T')[0] // Set to today
+      };
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/pantry_items`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': process.env.NEXT_PUBLIC_SUPABASE_KEY!,
+          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_KEY}`
+        },
+        body: JSON.stringify(newItem)
+      });
+
+      if (response.ok) {
+        // Instead of trying to parse the response, just refresh the items list
+        await fetchItems();
+        alert('Item duplicated successfully!');
+      } else {
+        const errorText = await response.text();
+        console.error('Failed to duplicate item:', errorText);
+        alert('Failed to duplicate item');
+      }
+    } catch (error) {
+      console.error('Error duplicating item:', error);
+      alert('Failed to duplicate item');
     }
   };
 
@@ -703,50 +751,69 @@ export default function Inventory() {
               >
                 Edit
               </button>
-              {(item.completion === null || item.completion > 0) && (
-                <button
-                  onClick={() => markAsUsed(item.id)}
-                  style={{
-                    padding: '6px 12px',
-                    background: 'var(--stats-card-bg)',
-                    color: 'var(--text-primary)',
-                    border: `1px solid var(--border)`,
-                    borderRadius: 4,
-                    cursor: 'pointer',
-                    fontSize: 13
-                  }}
-                >
-                  Finished
-                </button>
-              )}
-              <button
-                onClick={() => addToShoppingList(item)}
-                style={{
-                  padding: '6px 12px',
-                  background: 'var(--success)',
-                  color: 'white',
-                  border: `1px solid var(--success)`,
-                  borderRadius: 4,
-                  cursor: 'pointer',
-                  fontSize: 13
-                }}
-              >
-                Shop
-              </button>
-              <button
-                onClick={() => deleteItem(item.id)}
-                style={{
-                  padding: '6px 12px',
-                  background: 'var(--stats-card-bg)',
-                  color: 'var(--danger)',
-                  border: `1px solid var(--border)`,
-                  borderRadius: 4,
-                  cursor: 'pointer',
-                  fontSize: 13
-                }}
-              >
-                Delete
-              </button>
+                             {(item.completion === null || item.completion > 0) && (
+                 <button
+                   onClick={() => markAsUsed(item.id)}
+                   style={{
+                     padding: '6px 12px',
+                     background: 'var(--stats-card-bg)',
+                     color: 'var(--text-primary)',
+                     border: `1px solid var(--border)`,
+                     borderRadius: 4,
+                     cursor: 'pointer',
+                     fontSize: 13
+                   }}
+                 >
+                   Finished
+                 </button>
+               )}
+               <button
+                 onClick={() => addToShoppingList(item)}
+                 style={{
+                   padding: '6px 12px',
+                   background: 'var(--success)',
+                   color: 'white',
+                   border: `1px solid var(--success)`,
+                   borderRadius: 4,
+                   cursor: 'pointer',
+                   fontSize: 13
+                 }}
+               >
+                 Shop
+               </button>
+               <button
+                 onClick={() => deleteItem(item.id)}
+                 style={{
+                   padding: '6px 12px',
+                   background: 'var(--stats-card-bg)',
+                   color: 'var(--danger)',
+                   border: `1px solid var(--border)`,
+                   borderRadius: 4,
+                   cursor: 'pointer',
+                   fontSize: 13
+                 }}
+               >
+                 Delete
+               </button>
+               <button
+                 onClick={() => duplicateItem(item)}
+                 title="Duplicate item"
+                 style={{
+                   padding: '6px 8px',
+                   background: 'var(--stats-card-bg)',
+                   color: 'var(--text-secondary)',
+                   border: `1px solid var(--border)`,
+                   borderRadius: 4,
+                   cursor: 'pointer',
+                   fontSize: 14,
+                   minWidth: '32px',
+                   display: 'flex',
+                   alignItems: 'center',
+                   justifyContent: 'center'
+                 }}
+               >
+                 +
+               </button>
             </div>
           </div>
         ))}
@@ -951,7 +1018,7 @@ export default function Inventory() {
                   type="date"
                   name="purchase_date"
                   value={editingItem.purchase_date || ''}
-                  onChange={(e) => setEditingItem({...editingItem, purchase_date: e.target.value})}
+                  onChange={(e) => setEditingItem({...editingItem, purchase_date: e.target.value || null})}
                   style={{
                     width: '100%',
                     padding: '10px',
