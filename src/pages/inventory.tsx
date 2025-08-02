@@ -22,6 +22,7 @@ interface PantryItem {
   barcode: string;
   image: string;
   scanned_at: string;
+  created_at: string;
 }
 
 export default function Inventory() {
@@ -32,7 +33,7 @@ export default function Inventory() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
-  const [sortBy, setSortBy] = useState("scanned_at");
+  const [sortBy, setSortBy] = useState("created_at");
   const [showUsedItems, setShowUsedItems] = useState(true);
   const [expiryFilter, setExpiryFilter] = useState(""); // "expired", "expiring-soon", or ""
   const [editingItem, setEditingItem] = useState<PantryItem | null>(null);
@@ -102,7 +103,7 @@ export default function Inventory() {
 
   const fetchItems = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/pantry_items?select=*&order=scanned_at.desc`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/pantry_items?select=*&order=created_at.desc`, {
         headers: {
           'apikey': process.env.NEXT_PUBLIC_SUPABASE_KEY!,
           'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_KEY}`
@@ -249,8 +250,9 @@ export default function Inventory() {
         ...item,
         id: undefined, // Remove ID so Supabase generates a new one
         completion: 100, // Reset to new item
+        scanned_at: item.scanned_at, // Keep the original scanned_at date
+        created_at: undefined, // Remove created_at so it gets set to current timestamp
         // Keep original purchase_date instead of setting to today
-        scanned_at: new Date().toISOString().split('T')[0] // Set to today
       };
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/pantry_items`, {
@@ -324,12 +326,14 @@ export default function Inventory() {
           return new Date(a.expiry || '9999-12-31').getTime() - new Date(b.expiry || '9999-12-31').getTime();
         case 'purchase_date':
           return new Date(b.purchase_date || '9999-12-31').getTime() - new Date(a.purchase_date || '9999-12-31').getTime();
+        case 'created_at':
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         case 'scanned_at':
           return new Date(b.scanned_at).getTime() - new Date(a.scanned_at).getTime();
         case 'location':
           return a.location.localeCompare(b.location);
         default:
-          return 0;
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime(); // Default to created_at sorting
       }
     });
 
@@ -618,7 +622,7 @@ export default function Inventory() {
              <option value="name">Name</option>
              <option value="expiry">Expiry</option>
              <option value="purchase_date">Purchased</option>
-             <option value="scanned_at">Added</option>
+             <option value="created_at">Added</option>
              <option value="location">Location</option>
            </select>
          </div>

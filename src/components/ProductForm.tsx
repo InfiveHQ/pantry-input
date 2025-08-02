@@ -372,7 +372,7 @@ export default function ProductForm({ barcode, productData }: {
         expiry: formData.expiry || null,
         quantity: formData.quantity ? parseFloat(formData.quantity) : null,
         completion: formData.completion ? parseFloat(formData.completion) : null,
-        scanned_at: new Date().toISOString().split('T')[0]
+        // Remove scanned_at and created_at so they get set automatically by the database
       };
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/pantry_items`, {
