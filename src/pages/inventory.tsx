@@ -34,7 +34,7 @@ export default function Inventory() {
   const [searchTerm, setSearchTerm] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [sortBy, setSortBy] = useState("created_at");
-  const [showUsedItems, setShowUsedItems] = useState(true);
+  const [showUsedItems, setShowUsedItems] = useState(false);
   const [expiryFilter, setExpiryFilter] = useState(""); // "expired", "expiring-soon", or ""
   const [editingItem, setEditingItem] = useState<PantryItem | null>(null);
   const [locationTabsExpanded, setLocationTabsExpanded] = useState(false);
@@ -299,7 +299,10 @@ export default function Inventory() {
   };
 
   const getItemsWithSameName = (itemName: string) => {
-    return items.filter(item => (item.name?.toLowerCase() || '') === itemName.toLowerCase());
+    return items.filter(item => 
+      (item.name?.toLowerCase() || '') === itemName.toLowerCase() && 
+      item.completion !== 0 // Only count items that are not used
+    );
   };
 
   const filteredAndSortedItems = items
@@ -674,9 +677,9 @@ export default function Inventory() {
              onChange={(e) => setShowUsedItems(e.target.checked)}
              style={{ width: 16, height: 16 }}
            />
-           <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
-             Exclude Used
-           </span>
+                       <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>
+              Exclude Used
+            </span>
          </div>
        </div>
 
