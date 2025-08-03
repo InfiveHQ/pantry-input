@@ -34,7 +34,7 @@ export default function Inventory() {
   const [searchTerm, setSearchTerm] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [sortBy, setSortBy] = useState("created_at");
-  const [showUsedItems, setShowUsedItems] = useState(false);
+  const [showUsedItems, setShowUsedItems] = useState(true);
   const [expiryFilter, setExpiryFilter] = useState(""); // "expired", "expiring-soon", or ""
   const [editingItem, setEditingItem] = useState<PantryItem | null>(null);
   const [locationTabsExpanded, setLocationTabsExpanded] = useState(false);
@@ -299,10 +299,12 @@ export default function Inventory() {
   };
 
   const getItemsWithSameName = (itemName: string) => {
-    return items.filter(item => 
-      (item.name?.toLowerCase() || '') === itemName.toLowerCase() && 
-      item.completion !== 0 // Only count items that are not used
-    );
+    return items.filter(item => {
+      const nameMatches = (item.name?.toLowerCase() || '') === itemName.toLowerCase();
+      // If "Exclude Used" is checked, only count unused items
+      const usageMatches = showUsedItems ? (item.completion === null || item.completion > 0) : true;
+      return nameMatches && usageMatches;
+    });
   };
 
   const filteredAndSortedItems = items
