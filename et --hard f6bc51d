@@ -1,0 +1,5 @@
+[33m5d65901[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m Fix image display issue by disabling Vercel image optimization (hit 5K limit)
+[33m4d704d1[m Add debug pages for image troubleshooting and storage setup
+[33mf6bc51d[m Set Exclude Used checkbox to default checked and make quantity indicator respect checkbox state
+[33mc67ad89[m Update inventory: modify quantity indicator to only count unused items and fix checkbox label
+[33macdc010[m Update ProductForm and inventory components
