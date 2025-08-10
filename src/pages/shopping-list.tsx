@@ -293,9 +293,10 @@ export default function ShoppingList() {
           {/* Items Grid */}
           <div style={{ 
             display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+            gridTemplateColumns: 'repeat(auto-fit, 320px)', 
             gap: 16,
-            maxWidth: '100%'
+            maxWidth: '100%',
+            justifyContent: 'center'
           }}>
             {shoppingList.map(item => (
               <div key={item.id} style={{
@@ -304,10 +305,12 @@ export default function ShoppingList() {
                 padding: 16,
                 background: 'var(--card-bg)',
                 position: 'relative',
-                maxWidth: '400px',
-                justifySelf: 'center',
+                width: '100%',
+                height: '400px',
                 boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-                transition: 'all 0.2s ease'
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                flexDirection: 'column'
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'translateY(-2px)';
@@ -350,7 +353,7 @@ export default function ShoppingList() {
                 {/* Item Details */}
                 <h3 style={{ margin: '0 0 8px 0', color: 'var(--text-primary)', fontSize: '16px' }}>{item.name}</h3>
                 
-                <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>
+                <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12, flex: 1 }}>
                   {item.brand && <div><strong>Brand:</strong> {item.brand}</div>}
                   {item.category && <div><strong>Category:</strong> {item.category}</div>}
                   <div><strong>Quantity:</strong> {item.quantity}</div>
