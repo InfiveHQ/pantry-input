@@ -66,7 +66,13 @@ export const STORAGE_AREAS: StorageArea[] = [
 export const getRooms = (): string[] => {
   const roomSet = new Set<string>();
   STORAGE_AREAS.forEach(area => roomSet.add(area.room));
-  return Array.from(roomSet).sort();
+  const rooms = Array.from(roomSet);
+  
+  // Put Kitchen first, then sort the rest alphabetically
+  const kitchenFirst = rooms.filter(room => room === 'Kitchen');
+  const otherRooms = rooms.filter(room => room !== 'Kitchen').sort();
+  
+  return [...kitchenFirst, ...otherRooms];
 };
 
 export const getStorageAreasByRoom = (room: string): StorageArea[] => {

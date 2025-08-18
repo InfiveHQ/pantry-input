@@ -42,6 +42,7 @@ export default function Inventory() {
   const [editingItem, setEditingItem] = useState<PantryItem | null>(null);
   const [editingSelectedRoom, setEditingSelectedRoom] = useState('Kitchen');
   const [isMobile, setIsMobile] = useState(false);
+  const [showAllStats, setShowAllStats] = useState(false);
 
 
   const locations = [
@@ -414,125 +415,213 @@ export default function Inventory() {
           marginBottom: 12,
           flexWrap: 'wrap'
         }}>
-          <div 
-            onClick={() => setExpiryFilter("")}
-            style={{ 
-              background: expiryFilter === "" ? 'var(--stats-card-active)' : 'var(--stats-card-bg)',
-              padding: '6px 10px', 
-              borderRadius: 4, 
-              cursor: 'pointer',
-              border: expiryFilter === "" ? '2px solid var(--primary)' : '1px solid var(--border)',
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6
-            }}
-          >
-            <span style={{ fontSize: 14, fontWeight: 'bold', color: 'var(--primary)' }}>{filteredAndSortedItems.length}</span>
-            <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>All Items</span>
-          </div>
-          <div 
-            onClick={() => setExpiryFilter("expiring-week")}
-            style={{ 
-              background: expiryFilter === "expiring-week" ? 'var(--expiring-week-bg)' : 'var(--stats-card-bg)',
-              padding: '6px 10px', 
-              borderRadius: 4, 
-              cursor: 'pointer',
-              border: expiryFilter === "expiring-week" ? '2px solid var(--expiring-week-border)' : '1px solid var(--border)',
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6
-            }}
-          >
-            <span style={{ fontSize: 14, fontWeight: 'bold', color: 'var(--expiring-week-border)' }}>
-              {items.filter(item => 
-                getExpiryStatus(item.expiry) === 'expiring-week' || 
-                getExpiryStatus(item.expiry) === 'expiring-3-days' || 
-                getExpiryStatus(item.expiry) === 'expiring-today'
-              ).length}
-            </span>
-            <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>Week</span>
-          </div>
-          <div 
-            onClick={() => setExpiryFilter("expiring-3-days")}
-            style={{ 
-              background: expiryFilter === "expiring-3-days" ? 'var(--expiring-3-days-bg)' : 'var(--stats-card-bg)',
-              padding: '6px 10px', 
-              borderRadius: 4, 
-              cursor: 'pointer',
-              border: expiryFilter === "expiring-3-days" ? '2px solid var(--expiring-3-days-border)' : '1px solid var(--border)',
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6
-            }}
-          >
-            <span style={{ fontSize: 14, fontWeight: 'bold', color: 'var(--expiring-3-days-border)' }}>
-              {items.filter(item => 
-                getExpiryStatus(item.expiry) === 'expiring-3-days' || 
-                getExpiryStatus(item.expiry) === 'expiring-today'
-              ).length}
-            </span>
-            <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>3 Days</span>
-          </div>
-          <div 
-            onClick={() => setExpiryFilter("expiring-today")}
-            style={{ 
-              background: expiryFilter === "expiring-today" ? 'var(--expiring-today-bg)' : 'var(--stats-card-bg)',
-              padding: '6px 10px', 
-              borderRadius: 4, 
-              cursor: 'pointer',
-              border: expiryFilter === "expiring-today" ? '2px solid var(--expiring-today-border)' : '1px solid var(--border)',
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6
-            }}
-          >
-            <span style={{ fontSize: 14, fontWeight: 'bold', color: 'var(--expiring-today-border)' }}>
-              {items.filter(item => getExpiryStatus(item.expiry) === 'expiring-today').length}
-            </span>
-            <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>Today</span>
-          </div>
-          <div 
-            onClick={() => setExpiryFilter("expired")}
-            style={{ 
-              background: expiryFilter === "expired" ? 'var(--expired-bg)' : 'var(--stats-card-bg)',
-              padding: '6px 10px', 
-              borderRadius: 4, 
-              cursor: 'pointer',
-              border: expiryFilter === "expired" ? '2px solid var(--expired-border)' : '1px solid var(--border)',
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6
-            }}
-          >
-            <span style={{ fontSize: 14, fontWeight: 'bold', color: 'var(--expired-border)' }}>
-              {items.filter(item => getExpiryStatus(item.expiry) === 'expired').length}
-            </span>
-            <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>Expired</span>
-          </div>
-          <div 
-            onClick={() => setExpiryFilter("finished")}
-            style={{ 
-              background: expiryFilter === "finished" ? 'var(--finished-bg)' : 'var(--stats-card-bg)',
-              padding: '6px 10px', 
-              borderRadius: 4, 
-              cursor: 'pointer',
-              border: expiryFilter === "finished" ? '2px solid var(--finished-border)' : '1px solid var(--border)',
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6
-            }}
-          >
-            <span style={{ fontSize: 14, fontWeight: 'bold', color: 'var(--finished-border)' }}>
-              {items.filter(item => item.completion === 0).length}
-            </span>
-            <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>Finished</span>
-          </div>
+                     {/* All Items - Always visible */}
+           <div 
+             onClick={() => setExpiryFilter("")}
+             style={{ 
+               background: expiryFilter === "" ? 'var(--stats-card-active)' : 'var(--stats-card-bg)',
+               padding: '6px 10px', 
+               borderRadius: 4, 
+               cursor: 'pointer',
+               border: expiryFilter === "" ? '2px solid var(--primary)' : '1px solid var(--border)',
+               transition: 'all 0.2s',
+               display: 'flex',
+               alignItems: 'center',
+               gap: 6
+             }}
+           >
+             <span style={{ fontSize: 14, fontWeight: 'bold', color: 'var(--primary)' }}>{filteredAndSortedItems.length}</span>
+             <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>All Items</span>
+           </div>
+           
+                       {/* Expired - Always visible */}
+            <div 
+              onClick={() => setExpiryFilter("expired")}
+              style={{ 
+                background: expiryFilter === "expired" ? 'var(--expired-bg)' : 'var(--stats-card-bg)',
+                padding: '6px 10px', 
+                borderRadius: 4, 
+                cursor: 'pointer',
+                border: expiryFilter === "expired" ? '2px solid var(--expired-border)' : '1px solid var(--border)',
+                transition: 'all 0.2s',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6
+              }}
+            >
+              <span style={{ fontSize: 14, fontWeight: 'bold', color: 'var(--expired-border)' }}>
+                {items.filter(item => {
+                  const matchesExpiry = getExpiryStatus(item.expiry) === 'expired';
+                  // Apply room filter if active
+                  let matchesLocation = true;
+                  if (roomFilter) {
+                    const storageAreasInRoom = getStorageAreasByRoom(roomFilter);
+                    const itemLocationInRoom = storageAreasInRoom.find(area => area.name === item.location);
+                    matchesLocation = !!itemLocationInRoom;
+                  } else if (locationFilter) {
+                    matchesLocation = item.location === locationFilter;
+                  }
+                  return matchesExpiry && matchesLocation;
+                }).length}
+              </span>
+              <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>Expired</span>
+            </div>
+                     {/* Week - Hidden on mobile unless expanded */}
+           <div 
+             onClick={() => setExpiryFilter("expiring-week")}
+             style={{ 
+               background: expiryFilter === "expiring-week" ? 'var(--expiring-week-bg)' : 'var(--stats-card-bg)',
+               padding: '6px 10px', 
+               borderRadius: 4, 
+               cursor: 'pointer',
+               border: expiryFilter === "expiring-week" ? '2px solid var(--expiring-week-border)' : '1px solid var(--border)',
+               transition: 'all 0.2s',
+               display: isMobile && !showAllStats ? 'none' : 'flex',
+               alignItems: 'center',
+               gap: 6
+             }}
+           >
+             <span style={{ fontSize: 14, fontWeight: 'bold', color: 'var(--expiring-week-border)' }}>
+               {items.filter(item => {
+                 const matchesExpiry = getExpiryStatus(item.expiry) === 'expiring-week' || 
+                                      getExpiryStatus(item.expiry) === 'expiring-3-days' || 
+                                      getExpiryStatus(item.expiry) === 'expiring-today';
+                 // Apply room filter if active
+                 let matchesLocation = true;
+                 if (roomFilter) {
+                   const storageAreasInRoom = getStorageAreasByRoom(roomFilter);
+                   const itemLocationInRoom = storageAreasInRoom.find(area => area.name === item.location);
+                   matchesLocation = !!itemLocationInRoom;
+                 } else if (locationFilter) {
+                   matchesLocation = item.location === locationFilter;
+                 }
+                 return matchesExpiry && matchesLocation;
+               }).length}
+             </span>
+             <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>Week</span>
+           </div>
+                     {/* 3 Days - Hidden on mobile unless expanded */}
+           <div 
+             onClick={() => setExpiryFilter("expiring-3-days")}
+             style={{ 
+               background: expiryFilter === "expiring-3-days" ? 'var(--expiring-3-days-bg)' : 'var(--stats-card-bg)',
+               padding: '6px 10px', 
+               borderRadius: 4, 
+               cursor: 'pointer',
+               border: expiryFilter === "expiring-3-days" ? '2px solid var(--expiring-3-days-border)' : '1px solid var(--border)',
+               transition: 'all 0.2s',
+               display: isMobile && !showAllStats ? 'none' : 'flex',
+               alignItems: 'center',
+               gap: 6
+             }}
+           >
+             <span style={{ fontSize: 14, fontWeight: 'bold', color: 'var(--expiring-3-days-border)' }}>
+               {items.filter(item => {
+                 const matchesExpiry = getExpiryStatus(item.expiry) === 'expiring-3-days' || 
+                                      getExpiryStatus(item.expiry) === 'expiring-today';
+                 // Apply room filter if active
+                 let matchesLocation = true;
+                 if (roomFilter) {
+                   const storageAreasInRoom = getStorageAreasByRoom(roomFilter);
+                   const itemLocationInRoom = storageAreasInRoom.find(area => area.name === item.location);
+                   matchesLocation = !!itemLocationInRoom;
+                 } else if (locationFilter) {
+                   matchesLocation = item.location === locationFilter;
+                 }
+                 return matchesExpiry && matchesLocation;
+               }).length}
+             </span>
+             <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>3 Days</span>
+           </div>
+                     {/* Today - Hidden on mobile unless expanded */}
+           <div 
+             onClick={() => setExpiryFilter("expiring-today")}
+             style={{ 
+               background: expiryFilter === "expiring-today" ? 'var(--expiring-today-bg)' : 'var(--stats-card-bg)',
+               padding: '6px 10px', 
+               borderRadius: 4, 
+               cursor: 'pointer',
+               border: expiryFilter === "expiring-today" ? '2px solid var(--expiring-today-border)' : '1px solid var(--border)',
+               transition: 'all 0.2s',
+               display: isMobile && !showAllStats ? 'none' : 'flex',
+               alignItems: 'center',
+               gap: 6
+             }}
+           >
+             <span style={{ fontSize: 14, fontWeight: 'bold', color: 'var(--expiring-today-border)' }}>
+               {items.filter(item => {
+                 const matchesExpiry = getExpiryStatus(item.expiry) === 'expiring-today';
+                 // Apply room filter if active
+                 let matchesLocation = true;
+                 if (roomFilter) {
+                   const storageAreasInRoom = getStorageAreasByRoom(roomFilter);
+                   const itemLocationInRoom = storageAreasInRoom.find(area => area.name === item.location);
+                   matchesLocation = !!itemLocationInRoom;
+                 } else if (locationFilter) {
+                   matchesLocation = item.location === locationFilter;
+                 }
+                 return matchesExpiry && matchesLocation;
+               }).length}
+             </span>
+             <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>Today</span>
+           </div>
+          
+                     {/* Finished - Always visible */}
+           <div 
+             onClick={() => setExpiryFilter("finished")}
+             style={{ 
+               background: expiryFilter === "finished" ? 'var(--finished-bg)' : 'var(--stats-card-bg)',
+               padding: '6px 10px', 
+               borderRadius: 4, 
+               cursor: 'pointer',
+               border: expiryFilter === "finished" ? '2px solid var(--finished-border)' : '1px solid var(--border)',
+               transition: 'all 0.2s',
+               display: 'flex',
+               alignItems: 'center',
+               gap: 6
+             }}
+           >
+             <span style={{ fontSize: 14, fontWeight: 'bold', color: 'var(--finished-border)' }}>
+               {items.filter(item => {
+                 const matchesFinished = item.completion === 0;
+                 // Apply room filter if active
+                 let matchesLocation = true;
+                 if (roomFilter) {
+                   const storageAreasInRoom = getStorageAreasByRoom(roomFilter);
+                   const itemLocationInRoom = storageAreasInRoom.find(area => area.name === item.location);
+                   matchesLocation = !!itemLocationInRoom;
+                 } else if (locationFilter) {
+                   matchesLocation = item.location === locationFilter;
+                 }
+                 return matchesFinished && matchesLocation;
+               }).length}
+             </span>
+             <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>Finished</span>
+           </div>
+          
+          {/* Mobile: Show/Hide toggle button */}
+          {isMobile && (
+            <button
+              onClick={() => setShowAllStats(!showAllStats)}
+              style={{
+                background: 'var(--stats-card-bg)',
+                color: 'var(--text-secondary)',
+                padding: '6px 10px',
+                border: '1px solid var(--border)',
+                borderRadius: 4,
+                cursor: 'pointer',
+                fontSize: 10,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4
+              }}
+            >
+              {showAllStats ? 'Hide' : 'More'}
+              <span style={{ fontSize: 8 }}>
+                {showAllStats ? '▼' : '▶'}
+              </span>
+            </button>
+          )}
         </div>
 
                                   {/* Room-Based Storage Selector */}

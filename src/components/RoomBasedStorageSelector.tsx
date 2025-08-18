@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { getRooms, getStorageAreasByRoom } from '../lib/storageAreas';
 
 interface RoomBasedStorageSelectorProps {
@@ -17,16 +17,38 @@ export default function RoomBasedStorageSelector({
 	className = ''
 }: RoomBasedStorageSelectorProps) {
 	const rooms = getRooms();
+	const [isMobile, setIsMobile] = useState(false);
+	const [showStorageAreas, setShowStorageAreas] = useState(false);
 
 	const activeRoom = selectedRoom || '';
-
 	const areasForActiveRoom = activeRoom ? getStorageAreasByRoom(activeRoom) : [];
+	
+	// Check if mobile on mount and resize
+	useEffect(() => {
+		const checkIsMobile = () => {
+			setIsMobile(window.innerWidth <= 768);
+		};
+		
+		checkIsMobile();
+		window.addEventListener('resize', checkIsMobile);
+		
+		return () => window.removeEventListener('resize', checkIsMobile);
+	}, []);
+
+	// Reset storage areas visibility when room changes on mobile
+	useEffect(() => {
+		if (isMobile && activeRoom) {
+			setShowStorageAreas(false);
+		}
+	}, [activeRoom, isMobile]);
 	
 	console.log('RoomBasedStorageSelector render:', { 
 		selectedRoom, 
 		activeRoom, 
 		areasForActiveRoomLength: areasForActiveRoom.length,
-		areasForActiveRoom 
+		areasForActiveRoom,
+		isMobile,
+		showStorageAreas
 	});
 
 	return (
@@ -90,44 +112,76 @@ export default function RoomBasedStorageSelector({
 
 			{/* Storage areas for the active room */}
 			{activeRoom && (
-				<div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-					<button
-						onClick={() => onStorageAreaChange('')}
-						style={{
-							background: selectedStorageArea === '' ? 'var(--primary)' : 'var(--stats-card-bg)',
-							color: selectedStorageArea === '' ? 'white' : 'var(--text-secondary)',
-							padding: '6px 10px',
-							borderRadius: 16,
-							border: selectedStorageArea === '' ? 'none' : '1px solid var(--border)',
-							cursor: 'pointer',
-							fontSize: 12,
-							fontWeight: selectedStorageArea === '' ? 'bold' : 'normal'
-						}}
-					>
-						All {activeRoom}
-					</button>
-					{areasForActiveRoom.map(area => {
-						const isActive = selectedStorageArea === area.name;
-						return (
-							<button
-								key={area.id}
-								onClick={() => onStorageAreaChange(area.name)}
-								style={{
-									background: isActive ? 'var(--primary)' : 'var(--stats-card-bg)',
-									color: isActive ? 'white' : 'var(--text-secondary)',
-									padding: '6px 10px',
-									borderRadius: 16,
-									border: isActive ? 'none' : '1px solid var(--border)',
-									cursor: 'pointer',
-									fontSize: 12,
-									fontWeight: isActive ? 'bold' : 'normal'
-								}}
-							>
-								{area.name}
-							</button>
-						);
-					})}
-				</div>
+				<>
+					{/* Mobile: Show/Hide toggle button */}
+					{isMobile && (
+						<button
+							onClick={() => setShowStorageAreas(!showStorageAreas)}
+							style={{
+								background: 'var(--stats-card-bg)',
+								color: 'var(--text-secondary)',
+								padding: '8px 12px',
+								border: '1px solid var(--border)',
+								borderRadius: 6,
+								cursor: 'pointer',
+								fontSize: 12,
+								marginBottom: 8,
+								display: 'flex',
+								alignItems: 'center',
+								gap: 6
+							}}
+						>
+							{showStorageAreas ? 'Hide' : 'Show'} Storage Areas
+							<span style={{ fontSize: 10 }}>
+								{showStorageAreas ? '▼' : '▶'}
+							</span>
+						</button>
+					)}
+					
+					{/* Storage areas - hidden on mobile unless toggled */}
+					<div style={{ 
+						display: isMobile && !showStorageAreas ? 'none' : 'flex', 
+						gap: 6, 
+						flexWrap: 'wrap' 
+					}}>
+						<button
+							onClick={() => onStorageAreaChange('')}
+							style={{
+								background: selectedStorageArea === '' ? 'var(--primary)' : 'var(--stats-card-bg)',
+								color: selectedStorageArea === '' ? 'white' : 'var(--text-secondary)',
+								padding: '6px 10px',
+								borderRadius: 16,
+								border: selectedStorageArea === '' ? 'none' : '1px solid var(--border)',
+								cursor: 'pointer',
+								fontSize: 12,
+								fontWeight: selectedStorageArea === '' ? 'bold' : 'normal'
+							}}
+						>
+							All {activeRoom}
+						</button>
+						{areasForActiveRoom.map(area => {
+							const isActive = selectedStorageArea === area.name;
+							return (
+								<button
+									key={area.id}
+									onClick={() => onStorageAreaChange(area.name)}
+									style={{
+										background: isActive ? 'var(--primary)' : 'var(--stats-card-bg)',
+										color: isActive ? 'white' : 'var(--text-secondary)',
+										padding: '6px 10px',
+										borderRadius: 16,
+										border: isActive ? 'none' : '1px solid var(--border)',
+										cursor: 'pointer',
+										fontSize: 12,
+										fontWeight: isActive ? 'bold' : 'normal'
+									}}
+								>
+									{area.name}
+								</button>
+							);
+						})}
+					</div>
+				</>
 			)}
 		</div>
 	);
