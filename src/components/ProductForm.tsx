@@ -1,24 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
+import { getRooms, getStorageAreasByRoom, STORAGE_AREAS } from "../lib/storageAreas";
 
-const LOCATION_OPTIONS = [
-  "Shelf Top Small",
-  "Shelf Top Right",
-  "Shelf Top Large",
-  "Shelf Bottom",
-  "Countertop",
-  "Box Coffee",
-  "Snack Cabinet",
-  "Medicine Cabinet",
-  "Alcohol Cabinet",
-  "Fridge",
-  "Freezer",
-  "Unknown"
-];
-
-export default function ProductForm({ barcode, productData }: {
+export default function ProductForm({ barcode, productData, defaultRoom = 'Kitchen' }: {
   barcode?: string;
   productData?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  defaultRoom?: string;
 }) {
   const [formData, setFormData] = useState({
     name: "",
@@ -41,9 +28,15 @@ export default function ProductForm({ barcode, productData }: {
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
   const [selectedCamera, setSelectedCamera] = useState<string | undefined>(undefined);
   const [isMobile, setIsMobile] = useState(false);
+  const [selectedRoom, setSelectedRoom] = useState(defaultRoom);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Get available rooms and storage areas for selected room
+  const rooms = getRooms();
+  const storageAreasForRoom = getStorageAreasByRoom(selectedRoom);
+  const storageAreaOptions = storageAreasForRoom.map(area => area.name);
 
   // Auto-populate form when productData is provided
   useEffect(() => {
@@ -78,6 +71,11 @@ export default function ProductForm({ barcode, productData }: {
     return () => window.removeEventListener('resize', checkIsMobile);
   }, []);
 
+  // Update selected room when defaultRoom prop changes
+  useEffect(() => {
+    setSelectedRoom(defaultRoom);
+  }, [defaultRoom]);
+
   // List available cameras
   useEffect(() => {
     async function getCameras() {
@@ -106,6 +104,15 @@ export default function ProductForm({ barcode, productData }: {
     setFormData(prev => ({
       ...prev,
       [name]: value
+    }));
+  };
+
+  const handleRoomChange = (room: string) => {
+    setSelectedRoom(room);
+    // Clear location when room changes since the storage areas will be different
+    setFormData(prev => ({
+      ...prev,
+      location: ""
     }));
   };
 
@@ -451,7 +458,7 @@ export default function ProductForm({ barcode, productData }: {
        background: 'var(--background)',
        color: 'var(--text-primary)'
      }}>
-       <h2 style={{ textAlign: 'center', marginBottom: 30, color: 'var(--text-primary)' }}>Add Pantry Item</h2>
+               <h2 style={{ textAlign: 'center', marginBottom: 30, color: 'var(--text-primary)', fontSize: 20 }}>Add Pantry Item</h2>
       
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
         {/* Image Capture Section */}
@@ -462,7 +469,7 @@ export default function ProductForm({ barcode, productData }: {
           textAlign: 'center',
           marginBottom: 20
         }}>
-          <h3 style={{ marginBottom: 15, color: 'var(--text-primary)' }}>Product Image</h3>
+                     <h3 style={{ marginBottom: 15, color: 'var(--text-primary)', fontSize: 16 }}>Product Image</h3>
           
           {capturedImage ? (
             <div>
@@ -603,7 +610,7 @@ export default function ProductForm({ barcode, productData }: {
                maxHeight: '80vh',
                overflow: 'auto'
              }}>
-               <h3 style={{ marginBottom: 15, color: 'var(--text-primary)' }}>Take Product Photo</h3>
+               <h3 style={{ marginBottom: 15, color: 'var(--text-primary)', fontSize: 16 }}>Take Product Photo</h3>
                
                {/* Camera Selection */}
                {cameras.length > 1 && (
@@ -701,7 +708,7 @@ export default function ProductForm({ barcode, productData }: {
            borderRadius: 8,
            marginBottom: 20
          }}>
-           <h3 style={{ marginBottom: 15, color: 'var(--text-primary)' }}>Barcode</h3>
+                       <h3 style={{ marginBottom: 15, color: 'var(--text-primary)', fontSize: 16 }}>Barcode</h3>
            <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 10 }}>
              <input
                type="text"
@@ -762,9 +769,9 @@ export default function ProductForm({ barcode, productData }: {
         {/* Product Details */}
         <div style={{ display: 'grid', gap: 15 }}>
           <div>
-            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
-              Name *
-            </label>
+                         <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)', fontSize: 14 }}>
+               Name *
+             </label>
             <input
               type="text"
               name="name"
@@ -784,9 +791,9 @@ export default function ProductForm({ barcode, productData }: {
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
-              Brand
-            </label>
+                         <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)', fontSize: 14 }}>
+               Brand
+             </label>
             <input
               type="text"
               name="brand"
@@ -805,9 +812,9 @@ export default function ProductForm({ barcode, productData }: {
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
-              Category
-            </label>
+                         <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)', fontSize: 14 }}>
+               Category
+             </label>
             <input
               type="text"
               name="category"
@@ -826,9 +833,9 @@ export default function ProductForm({ barcode, productData }: {
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
-              Quantity
-            </label>
+                         <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)', fontSize: 14 }}>
+               Quantity
+             </label>
             <input
               type="number"
               name="quantity"
@@ -847,9 +854,9 @@ export default function ProductForm({ barcode, productData }: {
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
-              How much left (%) (Optional)
-            </label>
+                         <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)', fontSize: 14 }}>
+               How much left (%) (Optional)
+             </label>
             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
               <input
                 type="number"
@@ -881,9 +888,40 @@ export default function ProductForm({ barcode, productData }: {
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
-              Location
-            </label>
+                         <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)', fontSize: 14 }}>
+               Room & Location
+             </label>
+            
+            {/* Room Selection Tabs */}
+            <div style={{ 
+              display: 'flex', 
+              gap: 4, 
+              marginBottom: 8,
+              flexWrap: 'wrap'
+            }}>
+              {rooms.map(room => (
+                <button
+                  key={room}
+                  type="button"
+                  onClick={() => handleRoomChange(room)}
+                  style={{
+                    padding: '6px 12px',
+                    background: selectedRoom === room ? 'var(--primary)' : 'var(--stats-card-bg)',
+                    color: selectedRoom === room ? 'white' : 'var(--text-primary)',
+                    border: `1px solid ${selectedRoom === room ? 'var(--primary)' : 'var(--border)'}`,
+                    borderRadius: 4,
+                    cursor: 'pointer',
+                    fontSize: 12,
+                    fontWeight: selectedRoom === room ? 'bold' : 'normal',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {room}
+                </button>
+              ))}
+            </div>
+            
+            {/* Storage Area Dropdown */}
             <select
               name="location"
               value={formData.location}
@@ -898,17 +936,17 @@ export default function ProductForm({ barcode, productData }: {
                 color: 'var(--text-primary)'
               }}
             >
-              <option value="">-- Select Location --</option>
-              {LOCATION_OPTIONS.map(option => (
+              <option value="">-- Select Storage Area in {selectedRoom} --</option>
+              {storageAreaOptions.map(option => (
                 <option key={option} value={option}>{option}</option>
               ))}
             </select>
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
-              Purchase Date (Optional)
-            </label>
+                         <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)', fontSize: 14 }}>
+               Purchase Date (Optional)
+             </label>
             <input
               type="date"
               name="purchase_date"
@@ -927,9 +965,9 @@ export default function ProductForm({ barcode, productData }: {
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
-              Expiry Date (Optional)
-            </label>
+                         <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)', fontSize: 14 }}>
+               Expiry Date (Optional)
+             </label>
             <input
               type="date"
               name="expiry"
@@ -949,9 +987,9 @@ export default function ProductForm({ barcode, productData }: {
         </div>
 
         <div>
-          <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
-            Tags (Optional)
-          </label>
+                     <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)', fontSize: 14 }}>
+             Tags (Optional)
+           </label>
           <input
             type="text"
             name="tags"
@@ -971,9 +1009,9 @@ export default function ProductForm({ barcode, productData }: {
         </div>
 
         <div>
-          <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
-            Notes (Optional)
-          </label>
+                     <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)', fontSize: 14 }}>
+             Notes (Optional)
+           </label>
           <textarea
             name="notes"
             value={formData.notes}

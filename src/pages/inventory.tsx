@@ -3,9 +3,11 @@ import Image from "next/image";
 import { useRouter } from "next/router";
 import { useAuth } from "../contexts/AuthContext";
 import { supabase } from "../lib/supabase";
+import { getStorageAreasByRoom, getRooms } from "../lib/storageAreas";
 
 import Navigation from "../components/Navigation";
 import FloatingAddButton from "../components/FloatingAddButton";
+import RoomBasedStorageSelector from "../components/RoomBasedStorageSelector";
 
 interface PantryItem {
   id: number;
@@ -33,11 +35,12 @@ export default function Inventory() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
+  const [roomFilter, setRoomFilter] = useState("");
   const [sortBy, setSortBy] = useState("created_at");
   const [showUsedItems, setShowUsedItems] = useState(true);
   const [expiryFilter, setExpiryFilter] = useState(""); // "expired", "expiring-soon", or ""
   const [editingItem, setEditingItem] = useState<PantryItem | null>(null);
-  const [locationTabsExpanded, setLocationTabsExpanded] = useState(false);
+  const [editingSelectedRoom, setEditingSelectedRoom] = useState('Kitchen');
   const [isMobile, setIsMobile] = useState(false);
 
 
@@ -68,6 +71,8 @@ export default function Inventory() {
     }
   }, [user, authLoading, router]);
 
+
+
   // Check if mobile for responsive sticky positioning
   useEffect(() => {
     const checkIsMobile = () => {
@@ -78,9 +83,16 @@ export default function Inventory() {
     window.addEventListener('resize', checkIsMobile);
     
     return () => window.removeEventListener('resize', checkIsMobile);
-  }, []);
+     }, []);
 
-  // Show loading while checking authentication
+   // Debug roomFilter changes
+   useEffect(() => {
+     console.log('roomFilter changed to:', roomFilter);
+     console.log('roomFilter type:', typeof roomFilter);
+     console.log('roomFilter length:', roomFilter.length);
+   }, [roomFilter]);
+
+   // Show loading while checking authentication
   if (authLoading) {
     return (
       <div style={{ 
@@ -312,7 +324,18 @@ export default function Inventory() {
       const matchesSearch = (item.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
                           (item.brand?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
                           (item.category?.toLowerCase() || '').includes(searchTerm.toLowerCase());
-      const matchesLocation = !locationFilter || item.location === locationFilter;
+      
+      // Room and location filtering
+      let matchesLocation = true;
+      if (roomFilter) {
+        // If room is selected, check if item's location belongs to that room
+        const storageAreasInRoom = getStorageAreasByRoom(roomFilter);
+        const itemLocationInRoom = storageAreasInRoom.find(area => area.name === item.location);
+        matchesLocation = !!itemLocationInRoom;
+      } else if (locationFilter) {
+        // If specific location is selected, check exact match
+        matchesLocation = item.location === locationFilter;
+      }
       
       // For "Finished" tab, show all finished items regardless of showUsedItems setting
       // For all other tabs, apply the showUsedItems filter
@@ -512,77 +535,32 @@ export default function Inventory() {
           </div>
         </div>
 
-                 {/* Collapsible Location Tabs */}
+                                  {/* Room-Based Storage Selector */}
          <div style={{ marginBottom: 8 }}>
-           <div 
-             onClick={() => setLocationTabsExpanded(!locationTabsExpanded)}
-             style={{ 
-               background: 'var(--stats-card-bg)',
-               color: 'var(--text-primary)',
-               padding: '6px 10px', 
-               borderRadius: 4, 
-               cursor: 'pointer',
-               fontSize: 12,
-               fontWeight: 'bold',
-               border: '1px solid var(--border)',
-               display: 'flex',
-               alignItems: 'center',
-               justifyContent: 'space-between',
-               marginBottom: locationTabsExpanded ? 6 : 0
+                                               <RoomBasedStorageSelector
+               selectedRoom={roomFilter}
+               selectedStorageArea={locationFilter}
+                                                       onRoomChange={(room) => {
+                 console.log('Setting room filter to:', room);
+                 setRoomFilter(room);
+                 setLocationFilter(""); // Clear specific location when room changes
+                 console.log('roomFilter after setState:', room); // This won't show the updated value immediately
+                 
+                 // Force a re-render by updating a different state
+                 setTimeout(() => {
+                   console.log('Forcing re-render check');
+                   setRoomFilter(prev => {
+                     console.log('Previous roomFilter:', prev);
+                     return room;
+                   });
+                 }, 0);
+               }}
+             onStorageAreaChange={(storageArea) => {
+               setLocationFilter(storageArea);
+               setRoomFilter(""); // Clear room filter when specific location is selected
              }}
-           >
-             <span style={{ fontSize: isMobile ? 12 : 14 }}>Storage Areas {locationFilter && `(${locationFilter})`}</span>
-             <span style={{ fontSize: 10 }}>{locationTabsExpanded ? '▼' : '▶'}</span>
-           </div>
-           
-           {locationTabsExpanded && (
-             <div style={{ 
-               display: 'flex', 
-               gap: 4, 
-               flexWrap: 'wrap',
-               padding: '6px',
-               background: 'var(--filter-bg)',
-               borderRadius: 4,
-               border: '1px solid var(--border)'
-             }}>
-              <div 
-                onClick={() => setLocationFilter("")}
-                style={{ 
-                  background: locationFilter === "" ? 'var(--primary)' : 'var(--stats-card-bg)',
-                  color: locationFilter === "" ? 'white' : 'var(--text-secondary)',
-                  padding: '6px 12px', 
-                  borderRadius: 16, 
-                  cursor: 'pointer',
-                  fontSize: 12,
-                  fontWeight: locationFilter === "" ? 'bold' : 'normal',
-                  transition: 'all 0.2s',
-                  border: locationFilter === "" ? 'none' : `1px solid var(--border)`
-                }}
-              >
-                All Areas
-              </div>
-              {locations.map(location => (
-                <div 
-                  key={location}
-                  onClick={() => setLocationFilter(location)}
-                  style={{ 
-                    background: locationFilter === location ? 'var(--primary)' : 'var(--stats-card-bg)',
-                    color: locationFilter === location ? 'white' : 'var(--text-secondary)',
-                    padding: '6px 12px', 
-                    borderRadius: 16, 
-                    cursor: 'pointer',
-                    fontSize: 12,
-                    fontWeight: locationFilter === location ? 'bold' : 'normal',
-                    transition: 'all 0.2s',
-                    border: locationFilter === location ? 'none' : `1px solid var(--border)`
-                  }}
-                >
-                  {location}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+           />
+         </div>
       </div>
 
                                {/* Compact Filters */}
@@ -822,20 +800,27 @@ export default function Inventory() {
 
             {/* Actions */}
             <div style={{ display: 'flex', gap: 8, marginTop: 15 }}>
-              <button
-                onClick={() => setEditingItem(item)}
-                style={{
-                  padding: '6px 12px',
-                  background: 'var(--stats-card-bg)',
-                  color: 'var(--text-primary)',
-                  border: `1px solid var(--border)`,
-                  borderRadius: 4,
-                  cursor: 'pointer',
-                  fontSize: 13
-                }}
-              >
-                Edit
-              </button>
+                             <button
+                 onClick={() => {
+                   setEditingItem(item);
+                   // Set the editing room based on the item's current location
+                   const currentLocationRoom = getRooms().find(room => 
+                     getStorageAreasByRoom(room).find(area => area.name === item.location)
+                   ) || 'Kitchen';
+                   setEditingSelectedRoom(currentLocationRoom);
+                 }}
+                 style={{
+                   padding: '6px 12px',
+                   background: 'var(--stats-card-bg)',
+                   color: 'var(--text-primary)',
+                   border: `1px solid var(--border)`,
+                   borderRadius: 4,
+                   cursor: 'pointer',
+                   fontSize: 13
+                 }}
+               >
+                 Edit
+               </button>
                              {(item.completion === null || item.completion > 0) && (
                  <button
                    onClick={() => markAsUsed(item.id)}
@@ -997,29 +982,66 @@ export default function Inventory() {
                 />
               </div>
 
-              <div>
-                <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                  Location
-                </label>
-                <select
-                  value={editingItem.location || ''}
-                  onChange={(e) => setEditingItem({...editingItem, location: e.target.value})}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    border: `1px solid var(--input-border)`,
-                    borderRadius: 4,
-                    fontSize: 16,
-                    background: 'var(--input-bg)',
-                    color: 'var(--text-primary)'
-                  }}
-                >
-                  <option value="">Select Location</option>
-                  {locations.map(location => (
-                    <option key={location} value={location}>{location}</option>
-                  ))}
-                </select>
-              </div>
+                                                                                                                       <div>
+                   <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                     Room & Location
+                   </label>
+                   
+                   {/* Room Selection Tabs */}
+                   <div style={{ 
+                     display: 'flex', 
+                     gap: 4, 
+                     marginBottom: 8,
+                     flexWrap: 'wrap'
+                   }}>
+                     {getRooms().map(room => (
+                       <button
+                         key={room}
+                         type="button"
+                         onClick={() => {
+                           setEditingSelectedRoom(room);
+                           // Clear location when changing rooms
+                           setEditingItem({...editingItem, location: ''});
+                         }}
+                         style={{
+                           padding: '6px 12px',
+                           background: editingSelectedRoom === room ? 'var(--primary)' : 'var(--stats-card-bg)',
+                           color: editingSelectedRoom === room ? 'white' : 'var(--text-primary)',
+                           border: `1px solid ${editingSelectedRoom === room ? 'var(--primary)' : 'var(--border)'}`,
+                           borderRadius: 4,
+                           cursor: 'pointer',
+                           fontSize: 12,
+                           fontWeight: editingSelectedRoom === room ? 'bold' : 'normal',
+                           transition: 'all 0.2s'
+                         }}
+                       >
+                         {room}
+                       </button>
+                     ))}
+                   </div>
+                   
+                   {/* Storage Area Dropdown - Show areas for the selected room */}
+                   <select
+                     value={editingItem.location || ''}
+                     onChange={(e) => setEditingItem({...editingItem, location: e.target.value})}
+                     style={{
+                       width: '100%',
+                       padding: '10px',
+                       border: `1px solid var(--input-border)`,
+                       borderRadius: 4,
+                       fontSize: 16,
+                       background: 'var(--input-bg)',
+                       color: 'var(--text-primary)'
+                     }}
+                   >
+                     <option value="">-- Select Storage Area in {editingSelectedRoom} --</option>
+                     {getStorageAreasByRoom(editingSelectedRoom).map(area => (
+                       <option key={area.id} value={area.name}>
+                         {area.name}
+                       </option>
+                     ))}
+                   </select>
+                 </div>
 
               <div>
                 <label style={{ display: 'block', marginBottom: 5, fontWeight: 'bold', color: 'var(--text-primary)' }}>
@@ -1193,9 +1215,9 @@ export default function Inventory() {
         </div>
       )}
 
-      {/* Navigation and Floating Add Button */}
-      <Navigation />
-      <FloatingAddButton />
+             {/* Navigation and Floating Add Button */}
+       <Navigation />
+       <FloatingAddButton defaultRoom={roomFilter} />
     </div>
   );
 }

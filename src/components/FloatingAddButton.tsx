@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 
-export default function FloatingAddButton() {
+export default function FloatingAddButton({ defaultRoom = '' }: { defaultRoom?: string }) {
   const [isMobile, setIsMobile] = useState(false);
   const router = useRouter();
 
@@ -22,8 +22,10 @@ export default function FloatingAddButton() {
     return null;
   }
 
+  const addItemUrl = defaultRoom ? `/add-item?room=${encodeURIComponent(defaultRoom)}` : '/add-item';
+  
   return (
-    <Link href="/add-item" style={{
+    <Link href={addItemUrl} style={{
       position: 'fixed',
       bottom: '80px', // Position above mobile navigation
       right: '20px', // Position on the right

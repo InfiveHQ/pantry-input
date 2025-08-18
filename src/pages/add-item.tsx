@@ -14,6 +14,9 @@ export default function AddItem() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [isMobile, setIsMobile] = useState(false);
+  
+  // Get default room from URL parameter
+  const defaultRoom = router.query.room as string || 'Kitchen'; // Default to Kitchen if no room specified
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -134,6 +137,7 @@ export default function AddItem() {
             <ProductForm 
               barcode={scannedBarcode}
               productData={productData}
+              defaultRoom={defaultRoom}
             />
           </div>
         )}
