@@ -10,7 +10,7 @@ import FloatingAddButton from "../components/FloatingAddButton";
 import RoomBasedStorageSelector from "../components/RoomBasedStorageSelector";
 
 interface PantryItem {
-  id: number;
+  id: string;
   name: string | null;
   brand: string | null;
   category: string | null;
@@ -25,6 +25,9 @@ interface PantryItem {
   image: string;
   scanned_at: string;
   created_at: string;
+  wasted?: boolean;
+  wasted_at?: string;
+  wasted_by?: string;
 }
 
 export default function Inventory() {
@@ -137,7 +140,7 @@ export default function Inventory() {
     }
   };
 
-  const deleteItem = async (id: number) => {
+  const deleteItem = async (id: string) => {
     if (!confirm('Are you sure you want to delete this item?')) return;
 
     try {
@@ -161,7 +164,7 @@ export default function Inventory() {
     }
   };
 
-  const markAsUsed = async (id: number) => {
+  const markAsUsed = async (id: string) => {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/pantry_items?id=eq.${id}`, {
         method: 'PATCH',
@@ -301,6 +304,36 @@ export default function Inventory() {
     }
   };
 
+  const markAsWasted = async (id: string) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/pantry_items?id=eq.${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': process.env.NEXT_PUBLIC_SUPABASE_KEY!,
+          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_KEY}`
+        },
+        body: JSON.stringify({ wasted: true })
+      });
+
+      if (response.ok) {
+        setItems(items.map(item => 
+          item.id === id ? { ...item, wasted: true } : item
+        ));
+        alert('Item marked as wasted');
+      } else {
+        alert('Failed to update item');
+      }
+    } catch (error) {
+      console.error('Error updating item:', error);
+      alert('Error updating item');
+    }
+  };
+
+
+
+
+
   const getExpiryStatus = (expiry: string) => {
     if (!expiry) return 'no-expiry';
     const daysUntilExpiry = Math.ceil((new Date(expiry).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
@@ -311,14 +344,16 @@ export default function Inventory() {
     return 'ok';
   };
 
-  const getItemsWithSameName = (itemName: string) => {
-    return items.filter(item => {
-      const nameMatches = (item.name?.toLowerCase() || '') === itemName.toLowerCase();
-      // If "Exclude Used" is checked, only count unused items
-      const usageMatches = showUsedItems ? (item.completion === null || item.completion > 0) : true;
-      return nameMatches && usageMatches;
-    });
-  };
+     const getItemsWithSameName = (itemName: string) => {
+     return items.filter(item => {
+       const nameMatches = (item.name?.toLowerCase() || '') === itemName.toLowerCase();
+       // If "Exclude Used" is checked, only count unused items
+       const usageMatches = showUsedItems ? (item.completion === null || item.completion > 0) : true;
+               // Don't count wasted items
+        const notWasted = !item.wasted;
+        return nameMatches && usageMatches && notWasted;
+     });
+   };
 
   const filteredAndSortedItems = items
     .filter(item => {
@@ -338,20 +373,25 @@ export default function Inventory() {
         matchesLocation = item.location === locationFilter;
       }
       
-      // For "Finished" tab, show all finished items regardless of showUsedItems setting
-      // For all other tabs, apply the showUsedItems filter
-      const matchesUsedStatus = expiryFilter === "finished" ? 
-        true : // Show all items when on "Finished" tab
-        !showUsedItems || (item.completion === null || item.completion > 0);
+                     // For "Finished" and "Waste" tabs, show all items regardless of showUsedItems setting
+        // For all other tabs, apply the showUsedItems filter
+        const matchesUsedStatus = (expiryFilter === "finished" || expiryFilter === "waste") ? 
+          true : // Show all items when on "Finished" or "Waste" tab
+          !showUsedItems || (item.completion === null || item.completion > 0);
         
-      const matchesExpiryFilter = !expiryFilter || 
-                                 (expiryFilter === "finished" ? item.completion === 0 : 
-                                  expiryFilter === "expiring-week" ? 
-                                    (getExpiryStatus(item.expiry) === "expiring-week" || 
-                                     getExpiryStatus(item.expiry) === "expiring-3-days" || 
-                                     getExpiryStatus(item.expiry) === "expiring-today") :
-                                  getExpiryStatus(item.expiry) === expiryFilter);
-      return matchesSearch && matchesLocation && matchesUsedStatus && matchesExpiryFilter;
+                                         const matchesExpiryFilter = !expiryFilter || 
+                                   (expiryFilter === "finished" ? item.completion === 0 : 
+                                    expiryFilter === "waste" ? item.wasted === true :
+                                    expiryFilter === "expiring-week" ? 
+                                      (getExpiryStatus(item.expiry) === "expiring-week" || 
+                                       getExpiryStatus(item.expiry) === "expiring-3-days" || 
+                                       getExpiryStatus(item.expiry) === "expiring-today") :
+                                    getExpiryStatus(item.expiry) === expiryFilter);
+       
+               // Don't show wasted items in main view unless specifically viewing waste tab
+        const matchesWastedFilter = expiryFilter === "waste" ? true : !item.wasted;
+       
+               return matchesSearch && matchesLocation && matchesUsedStatus && matchesExpiryFilter && matchesWastedFilter;
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -596,7 +636,40 @@ export default function Inventory() {
                  return matchesFinished && matchesLocation;
                }).length}
              </span>
-             <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>Finished</span>
+                            <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>Used</span>
+           </div>
+           
+                       {/* Waste - Hidden on mobile unless expanded */}
+            <div 
+              onClick={() => setExpiryFilter("waste")}
+             style={{ 
+                               background: expiryFilter === "waste" ? 'var(--waste-bg, #fef2f2)' : 'var(--stats-card-bg)',
+                padding: '6px 10px', 
+                borderRadius: 4, 
+                cursor: 'pointer',
+                border: expiryFilter === "waste" ? '2px solid var(--waste-border, #dc2626)' : '1px solid var(--border)',
+               transition: 'all 0.2s',
+               display: isMobile && !showAllStats ? 'none' : 'flex',
+               alignItems: 'center',
+               gap: 6
+             }}
+           >
+                           <span style={{ fontSize: 14, fontWeight: 'bold', color: 'var(--waste-border, #dc2626)' }}>
+                {items.filter(item => {
+                  const matchesWasted = item.wasted === true;
+                 // Apply room filter if active
+                 let matchesLocation = true;
+                 if (roomFilter) {
+                   const storageAreasInRoom = getStorageAreasByRoom(roomFilter);
+                   const itemLocationInRoom = storageAreasInRoom.find(area => area.name === item.location);
+                   matchesLocation = !!itemLocationInRoom;
+                 } else if (locationFilter) {
+                   matchesLocation = item.location === locationFilter;
+                 }
+                                    return matchesWasted && matchesLocation;
+               }).length}
+             </span>
+                           <span style={{ fontSize: 10, color: 'var(--text-secondary)' }}>Waste</span>
            </div>
           
           {/* Mobile: Show/Hide toggle button */}
@@ -887,93 +960,123 @@ export default function Inventory() {
                )}
              </div>
 
-            {/* Actions */}
-            <div style={{ display: 'flex', gap: 8, marginTop: 15 }}>
-                             <button
-                 onClick={() => {
-                   setEditingItem(item);
-                   // Set the editing room based on the item's current location
-                   const currentLocationRoom = getRooms().find(room => 
-                     getStorageAreasByRoom(room).find(area => area.name === item.location)
-                   ) || 'Kitchen';
-                   setEditingSelectedRoom(currentLocationRoom);
-                 }}
-                 style={{
-                   padding: '6px 12px',
-                   background: 'var(--stats-card-bg)',
-                   color: 'var(--text-primary)',
-                   border: `1px solid var(--border)`,
-                   borderRadius: 4,
-                   cursor: 'pointer',
-                   fontSize: 13
-                 }}
-               >
-                 Edit
-               </button>
-                             {(item.completion === null || item.completion > 0) && (
-                 <button
-                   onClick={() => markAsUsed(item.id)}
+                         {/* Actions */}
+             <div style={{ display: 'flex', gap: 4, marginTop: 15, flexWrap: 'wrap', justifyContent: 'center' }}>
+                              <button
+                  onClick={() => {
+                    setEditingItem(item);
+                    // Set the editing room based on the item's current location
+                    const currentLocationRoom = getRooms().find(room => 
+                      getStorageAreasByRoom(room).find(area => area.name === item.location)
+                    ) || 'Kitchen';
+                    setEditingSelectedRoom(currentLocationRoom);
+                  }}
+                                      style={{
+                      padding: '4px 8px',
+                      background: 'var(--stats-card-bg)',
+                      color: 'var(--text-primary)',
+                      border: `1px solid var(--border)`,
+                      borderRadius: 4,
+                      cursor: 'pointer',
+                      fontSize: 12,
+                      minWidth: '40px',
+                      flex: '1 1 auto'
+                    }}
+                >
+                  Edit
+                </button>
+                              {(item.completion === null || item.completion > 0) && (
+                  <button
+                    onClick={() => markAsUsed(item.id)}
+                                         style={{
+                       padding: '4px 8px',
+                       background: 'var(--stats-card-bg)',
+                       color: 'var(--text-primary)',
+                       border: `1px solid var(--border)`,
+                       borderRadius: 4,
+                       cursor: 'pointer',
+                       fontSize: 12,
+                       minWidth: '40px',
+                       flex: '1 1 auto'
+                     }}
+                                      >
+                      Used
+                    </button>
+                )}
+                <button
+                  onClick={() => addToShoppingList(item)}
+                                     style={{
+                     padding: '4px 8px',
+                     background: 'var(--success)',
+                     color: 'white',
+                     border: `1px solid var(--success)`,
+                     borderRadius: 4,
+                     cursor: 'pointer',
+                     fontSize: 12,
+                     minWidth: '40px',
+                     flex: '1 1 auto'
+                   }}
+                >
+                  Shop
+                </button>
+                                                  <button
+                    onClick={() => markAsWasted(item.id)}
                    style={{
-                     padding: '6px 12px',
+                     padding: '4px 8px',
                      background: 'var(--stats-card-bg)',
                      color: 'var(--text-primary)',
                      border: `1px solid var(--border)`,
                      borderRadius: 4,
                      cursor: 'pointer',
-                     fontSize: 13
+                     fontSize: 12,
+                     minWidth: '40px',
+                     flex: '1 1 auto'
                    }}
                  >
-                   Finished
+                   Waste
                  </button>
-               )}
-               <button
-                 onClick={() => addToShoppingList(item)}
-                 style={{
-                   padding: '6px 12px',
-                   background: 'var(--success)',
-                   color: 'white',
-                   border: `1px solid var(--success)`,
-                   borderRadius: 4,
-                   cursor: 'pointer',
-                   fontSize: 13
-                 }}
-               >
-                 Shop
-               </button>
-               <button
-                 onClick={() => deleteItem(item.id)}
-                 style={{
-                   padding: '6px 12px',
-                   background: 'var(--stats-card-bg)',
-                   color: 'var(--danger)',
-                   border: `1px solid var(--border)`,
-                   borderRadius: 4,
-                   cursor: 'pointer',
-                   fontSize: 13
-                 }}
-               >
-                 Delete
-               </button>
-               <button
-                 onClick={() => duplicateItem(item)}
-                 title="Duplicate item"
-                 style={{
-                   padding: '6px 8px',
-                   background: 'var(--stats-card-bg)',
-                   color: 'var(--text-secondary)',
-                   border: `1px solid var(--border)`,
-                   borderRadius: 4,
-                   cursor: 'pointer',
-                   fontSize: 14,
-                   minWidth: '32px',
-                   display: 'flex',
-                   alignItems: 'center',
-                   justifyContent: 'center'
-                 }}
-               >
-                 +
-               </button>
-            </div>
+
+                                                                                                                                               <button
+                      onClick={() => deleteItem(item.id)}
+                      title="Delete item"
+                      style={{
+                        padding: '4px 6px',
+                        background: 'var(--stats-card-bg)',
+                        color: 'var(--text-primary)',
+                        border: `1px solid var(--border)`,
+                        borderRadius: 4,
+                        cursor: 'pointer',
+                        fontSize: 12,
+                        minWidth: '28px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flex: '0 0 auto'
+                      }}
+                    >
+                      🗑️
+                    </button>
+                <button
+                  onClick={() => duplicateItem(item)}
+                  title="Duplicate item"
+                  style={{
+                    padding: '4px 6px',
+                    background: 'var(--stats-card-bg)',
+                    color: 'var(--text-secondary)',
+                    border: `1px solid var(--border)`,
+                    borderRadius: 4,
+                    cursor: 'pointer',
+                    fontSize: 12,
+                    minWidth: '28px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flex: '0 0 auto'
+                  }}
+                >
+                  +
+                </button>
+             </div>
           </div>
         ))}
       </div>
